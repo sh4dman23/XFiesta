@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Buy Stocks
+{% endblock %}
+
+{% block main %}
+    <form action="/buy" method="post">
+        <div class="mb-3">
+            <input autocomplete="off" class="form-control mx-auto w-auto" id="symbol" name="symbol" required placeholder="Symbol" type="text">
+        </div>
+        <div class="mb-3">
+            <input autocomplete="off" class="form-control mx-auto w-auto" id="shares" name="shares" required placeholder="Number of Shares" type="Number" min="1">
+        </div>
+        <div id="warning" style="color: red; padding-bottom: 10px;"></div>
+        <button class="btn btn-primary" type="submit" id="buy_button" name="button">Buy</button>
+    </form>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let number = document.getElementById('shares');
+            number.oninput = function() {
+                if(Number.isInteger(Number(number.value)) == false) {
+                    document.getElementById('warning').innerHTML = "Number of shares must be an integer!";
+                    document.getElementById('buy_button').disabled = true;
+                }
+                else {
+                    document.getElementById('warning').innerHTML = "";
+                    document.getElementById('buy_button').disabled = false;
+                }
+            }
+        });
+    </script>
+{% endblock %}

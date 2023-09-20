@@ -1,0 +1,128 @@
+/* Size for brand */
+nav .navbar-brand
+{
+    font-size: xx-large;
+}
+
+/* Colors for brand */
+nav .navbar-brand .blue
+{
+    color: #537fbe;
+}
+nav .navbar-brand .red
+{
+    color: #ea433b;
+}
+nav .navbar-brand .yellow
+{
+    color: #f5b82e;
+}
+nav .navbar-brand .green
+{
+    color: #2e944b;
+}
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 55vh;
+}
+
+.text {
+    text-align: center;
+    font-size: large;
+}
+
+.p_table {
+    margin-left: 5%;
+    margin-right: 5%;
+}
+
+.left {
+    text-align: left;
+}
+
+.right {
+    text-align: right;
+}
+
+.alert {
+    text-align: center !important;
+    margin: 20px !important;
+    justify-content: center;
+}
+
+.alert svg {
+    width: 15px;
+}
+
+.btn, .btn-primary {
+    width: auto !important;
+    height: 30px !important;
+    text-align: center;
+    line-height: 1rem;
+}
+
+.popup {
+    padding: 20px;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    background-color: #f8f9fa;
+    width: 70%;
+    height: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    -webkit-box-shadow:0 0 10px rgba(0,0,0,0.4);
+    -moz-box-shadow:0 0 10px rgba(0,0,0,0.4);
+    box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+.container-p {
+    margin-left: 20px;
+    margin-right: 20px;
+    font-family: sans-serif;
+    font-weight: 800;
+}
+
+.container_d {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 60vh;
+}
+
+.actions {
+    display: flex;
+    padding: 20px;
+    justify-content: space-around;
+    flex-wrap: wrap;
+}
+
+.actions2 {
+    padding-left: 10px;
+    padding-right: 10px;
+    font-size: large;
+    font-weight: 500;
+}
+
+.form-control {
+    width: 30% !important;
+}
+
+.select-opts {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.form-select {
+    display: inline-block !important;
+}
+
+.form-select-cont {
+    margin-left: 5px !important;
+    margin-right: 5px !important;
+}

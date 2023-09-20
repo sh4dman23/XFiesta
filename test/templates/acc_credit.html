@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Recharge Credit
+{% endblock %}
+
+{% block main %}
+    <div>
+        <h2>Recharge Credit</h2>
+        <hr>
+        <form action="/acc_credit" method="post">
+            <h5>Username: {{ username }}</h5>
+            <h5>Current Credit: {{ current_credit }}</h5>
+            <br>
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto" id="credit_card" name="credit_card" required placeholder="Credit Card Number" type="text">
+            </div>
+            <h6>We support <b>AMERICAN EXPRESS, MASTERCARD and VISA</b> cards only!</h6>
+            <br>
+            <div class="mb-3 select-opts">
+                <div class="form-select-cont">
+                    <select class="form-select" id="month" name="month">
+                        <option value="January">January</option>
+                        <option value="February">February</option>
+                        <option value="March">March</option>
+                        <option value="April">April</option>
+                        <option value="May">May</option>
+                        <option value="June">June</option>
+                        <option value="July">July</option>
+                        <option value="August">August</option>
+                        <option value="September">September</option>
+                        <option value="October">October</option>
+                        <option value="November">November</option>
+                        <option value="December">December</option>
+                    </select>
+                </div>
+                <div class="form-select-cont">
+                    <select class="form-select" id="year" name="year">
+                        {% for year in years %}
+                            <option value="{{ year }}">{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <input autocomplete="off" class="form-control mx-auto w-auto" id="numCvv" name="numCvv" required placeholder="Cvv" style="width: 70% !important;" type="text" minlength="3" maxlength="4" pattern="\d{3,4}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto" id="numCredits" name="numCredits" required placeholder="Amount of Credits (in dollars)" type="number">
+            </div>
+            <button class="btn btn-primary" id="submit" type="submit">Change</button>
+        </form>
+    </div>
+{% endblock %}
