@@ -1,2 +1,4 @@
-# CS50-Final-Project
-My final project for CS50.
+# CS50 Final Project
+#### Video Demo:  <URL>
+#### Description: To-do
+To-do
