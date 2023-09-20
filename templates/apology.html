@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {{ code }}
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div style="font-size: 10vw;">Oops!</div>
+        <div class="error-message">
+            <h5>{{ code }} - {{ message }}</h5>
+        </div>
+        <br>
+        <a href="/"><button class="btn btn-primary">Proceed To Homepage</button></a>
+    </div>
+{% endblock %}

@@ -27,6 +27,12 @@ def after_request(response):
     return response
 
 
+# 404 page
+@app.errorhandler(404)
+def page_not_found(e):
+    return apology("Page Not Found!", 404)
+
+
 @app.route("/")
 @login_required
 def index():
