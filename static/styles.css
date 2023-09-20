@@ -69,3 +69,15 @@ h1 {
 .wave-top .shape-fill {
     fill: #FFFFFF;
 }
+
+.form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.form-control {
+    width: 30% !important;
+}
+
