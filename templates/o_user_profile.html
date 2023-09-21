@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/profiles.css" rel="stylesheet">
+{% endblock %}
+
+{% block title %}
+    {{ user["username"] }}'s Profile
+{% endblock %}
+
+{% block main %}
+    <div class="container-main o-profile">
+        <div class="profile-pic"><img src="static/user_profile_pic.png"></div>
+        <div class="fullname">
+            <div class="p-header">{{ user["fullname"] }}</div>
+        </div>
+        <div class="username">
+            @{{ user["username"] }}
+        </div>
+        <div class="stats">
+            <div class="stat">
+                Friends
+                <div id="friends">
+                    {{ user["friends"] }}
+                </div>
+            </div>
+            <div class="stat">
+                Carnivals
+                <br>
+                {{ user["carnival"] }}
+            </div>
+            <div class="stat">
+                Posts
+                <br>
+                {{ user["posts"] }}
+            </div>
+        </div>
+        <form>
+            <button class="btn btn-primary btn-prof" type="button" id="manage_friend">
+                {% if friends %}
+                    Remove Friend
+                {% else %}
+                    Add Friend
+                {% endif %}
+            </button>
+            <button class="btn btn-primary btn-prof" type="button" id="share_account">Share Account</button>
+        </form>
+        <div id="status1" style="color: green;"></div>
+        <div id="status2"></div>
+        <div class="about-me">
+            <div class="p-header">About Me</div>
+            {% if user["about_me"] %}
+                {{ user["about_me"] }}
+            {% else %}
+                Hello there! It seems like I haven't shared much about myself yet.
+                <br>
+                Life is full of stories, and I look forward to sharing mine with you soon. Stay tuned!
+            {% endif %}
+        </div>
+        {% if interests %}
+            <div class="interests">
+                <div class="p-header">Interests</div>
+                {% for interest in interests %}
+                    <span class="interest">#{{ interest["interest"] }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            friend = document.getElementById('manage_friend');
+            share = document.getElementById('share_account');
+            status1 = document.getElementById('status1');
+            status2 = document.getElementById('status2');
+
+            friend.onclick = async function() {
+                var aj = new XMLHttpRequest();
+                aj.onreadystatechange = function() {
+                    if (aj.readyState == 4 && aj.status == 200) {
+                        var data = JSON.parse(aj.responseText);
+                        if (data.result) {
+                            friend.innerHTML = "Remove Friend";
+                            status1.innerHTML = "Friend Added!";
+                            document.getElementById('friends').innerHTML = parseInt(document.getElementById('friends').innerHTML) + 1;
+                            setTimeout(function() {
+                                status1.innerHTML = "";
+                            }, 3000);
+                        } else {
+                            friend.innerHTML = "Add Friend";
+                            document.getElementById('friends').innerHTML = parseInt(document.getElementById('friends').innerHTML) - 1;
+                            status1.innerHTML = "Friend Removed!";
+                            setTimeout(function() {
+                                status1.innerHTML = "";
+                            }, 3000);
+                        }
+                    }
+                }
+                aj.open("POST", "/manage_friends", true);
+                aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+                aj.send("user_id=" + {{ user["id"] }});
+            }
+
+            share.onclick = function(event) {
+                event.preventDefault();
+                navigator.clipboard.writeText(window.location.href).then(function() {
+                    status2.style.color = "green";
+                    status2.innerHTML = "Account link copied to clipboard!";
+                }, function(err) {
+                    status2.style.color = "red";
+                    status2.innerHTML = "Could not copy link to clipboard!";
+                });
+                setTimeout(function() {
+                    status2.innerHTML = "";
+                }, 1500);
+            }
+        });
+    </script>
+{% endblock %}

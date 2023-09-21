@@ -1,0 +1,59 @@
+
+.o-profile {
+    margin: 5vw 5vh;
+    background-color: aliceblue;
+    border: 5px solid transparent;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-pic {
+    width: 125px;
+    height: 125px;
+    border: 2px solid white;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    background-color: #f0f0f0;
+}
+
+.profile-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.p-header {
+    font-weight: 700;
+    font-size: x-large;
+}
+
+.stats {
+    display: flex;
+    flex-direction: row !important;
+}
+
+.stat {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.interests {
+    margin-top: 2vh;
+}
+
+.interest {
+    background-color: #6aaecc;
+    padding: 5px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+}
+
+.btn-prof {
+    background-color: #b7c9e2 !important;
+    color: black !important;
+}

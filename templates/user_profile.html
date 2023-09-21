@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/profiles.css" rel="stylesheet">
+{% endblock %}
+
+{% block title %}
+    {{ user["username"] }}'s Profile
+{% endblock %}
+
+{% block main %}
+    <div class="container-main o-profile">
+        <div class="profile-pic"><img src="static/user_profile_pic.png"></div>
+        <div class="fullname">
+            <div class="p-header">{{ user["fullname"] }}</div>
+        </div>
+        <div class="username">
+            @{{ user["username"] }}
+        </div>
+        <div class="stats">
+            <div class="stat">
+                Friends
+                <br>
+                {{ user["friends"] }}
+            </div>
+            <div class="stat">
+                Carnivals
+                <br>
+                {{ user["carnival"] }}
+            </div>
+            <div class="stat">
+                Posts
+                <br>
+                {{ user["posts"] }}
+            </div>
+        </div>
+        <div class="about-me">
+            <div class="p-header">About Me</div>
+            {% if user["about_me"] %}
+                {{ user["about_me"] }}
+            {% else %}
+                Hello there! It seems like I haven't shared much about myself yet.
+                <br>
+                Life is full of stories, and I look forward to sharing mine with you soon. Stay tuned!
+            {% endif %}
+        </div>
+        {% if interests %}
+            <div class="interests">
+                <div class="p-header">Interests</div>
+                {% for interest in interests %}
+                    <span class="interest">#{{ interest["interest"] }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

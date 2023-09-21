@@ -23,9 +23,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         }
-        aj.open("GET", "/check_username?username=" + username, true);
+        aj.open("POST", "/check_username", true);
+        aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-        aj.send();
+        aj.send("username=" + username);
     }
     document.getElementById('password').oninput = function() {
         var password1 = document.getElementById('password').value;
@@ -40,7 +41,7 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('warning2').innerHTML = "";
             bool2 = true;
         }
-        if (password1 != password2) {
+        if (password1 != password2 && password2.length != 0) {
             document.getElementById('warning3').style.display = "block";
             document.getElementById('warning3').innerHTML = "Passwords do not match.";
             document.getElementById('submit').disabled = true;

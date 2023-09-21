@@ -1,7 +1,24 @@
 .navbar {
     height: 12vh !important;
     background-color: transparent !important;
+    border: none !important;
     padding-right: 12px !important;
+    font-family: 'Work Sans', sans-serif !important;
+}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        background-color: transparent !important;
+    }
+    .navbar-collapse {
+        background-color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(3px);
+        pointer-events: none;
+    }
+    .navbar-collapse * {
+        pointer-events: all;
+        padding-left: 1vw;
+    }
 }
 
 body {
@@ -19,7 +36,7 @@ h1 {
     background-color: white !important;
     color: blue;
     border: 2px solid transparent !important;
-    border-radius: 10%;
+    border-radius: 10px;
     transition: all 0.5s;
 }
 
@@ -40,10 +57,15 @@ h1 {
 
 .container-main {
     text-align: center;
-    padding: 5%;
+    padding: 10px;
+}
+
+@media (max-width: 640px) {
+    margin-top: 10vh;
 }
 
 .welcome {
+    padding-top: 50px;
     height: 88vh;
     margin: auto;
     flex-direction: column;
@@ -82,4 +104,3 @@ h1 {
 .form-control {
     width: 30% !important;
 }
-
