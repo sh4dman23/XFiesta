@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Profile Settings
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <form action="/profile_settings" method="post">
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">
+            </div>
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" value="{{ user['about_me'] }}" placeholder="About Me" maxlength="640" name="about_me">
+            </div>
+            <div class="mb-3">
+                <input autocomplete="off" class="form-control mx-auto w-auto line-form" id="interests" value="" placeholder="Interests" type="text" name="interests">
+            </div>
+            <div id="warning"></div>
+            <button class="btn btn-primary" name="submit" value="" type="submit">Save Changes</button>
+        </form>
+    </div>
+{% endblock %}

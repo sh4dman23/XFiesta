@@ -1,7 +1,7 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, redirect, render_template, request, session, jsonify
+from flask import Flask, redirect, render_template, request, session, jsonify, abort
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology
@@ -133,7 +133,7 @@ def profile():
     else:
         user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE username = ?;", username)
         if len(user) == 0:
-            return apology("User Not Found!", 404)
+            abort(404)
         elif user[0]["id"] == session["user_id"]:
             return redirect("/profile")
 
@@ -155,6 +155,7 @@ def profile():
 
 # Update friends status via AJAX
 @app.route("/manage_friends", methods=["GET", "POST"])
+@login_required
 def manage_friends():
     if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         id = request.form.get("user_id")
@@ -184,3 +185,18 @@ def manage_friends():
             return apology("Friend could not be added/removed!")
     else:
         abort(404)
+
+
+# Manage Profile Settings
+@app.route("/profile_settings", methods=["GET", "POST"])
+@login_required
+def profile_settings():
+    if request.method == "POST":
+        ...
+    else:
+        user = db.execute("SELECT fullname, about_me FROM users WHERE id = ?;", session["user_id"])
+        interests = db.execute(
+                "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
+                session["user_id"]
+            )
+        return render_template("profile_settings.html", user=user[0], interests=interests)

@@ -44,13 +44,21 @@
                 Life is full of stories, and I look forward to sharing mine with you soon. Stay tuned!
             {% endif %}
         </div>
-        {% if interests %}
-            <div class="interests">
-                <div class="p-header">Interests</div>
+        <div class="interests">
+            <div class="p-header">Interests</div>
+            {% if interests %}
                 {% for interest in interests %}
                     <span class="interest">#{{ interest["interest"] }}</span>
                 {% endfor %}
-            </div>
-        {% endif %}
+            {% else %}
+                <span>You have not added any interests yet. <strong>Interests directly affect your feed recommendations.</strong></span>
+                <br>
+                <a href="/profile_settings">Add interests?</a>
+            {% endif %}
+        </div>
+        <form>
+            <a href="/profile_settings"><button class="btn btn-primary btn-prof" type="button">Edit Profile</button></a>
+            <a href="/account_settings"><button class="btn btn-primary btn-prof" type="button">Account Settings</button></a>
+        </form>
     </div>
 {% endblock %}

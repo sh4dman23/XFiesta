@@ -6,16 +6,22 @@
     font-family: 'Work Sans', sans-serif !important;
 }
 
+.navbar-brand img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
 @media screen and (max-width: 768px) {
     .navbar {
         background-color: transparent !important;
     }
     .navbar-collapse {
         background-color: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(2px);
         pointer-events: none;
     }
     .navbar-collapse * {
+        font-weight: 700 !important;
         pointer-events: all;
         padding-left: 1vw;
     }
@@ -58,10 +64,13 @@ h1 {
 .container-main {
     text-align: center;
     padding: 10px;
+    margin-top: 10vh;
 }
 
-@media (max-width: 640px) {
-    margin-top: 10vh;
+@media (max-width: 768px) {
+    .container-main {
+        margin-top: 10vh;
+    }
 }
 
 .welcome {
@@ -72,6 +81,7 @@ h1 {
     justify-content: center;
     align-items: center;
 }
+
 
 .wave-top {
     position: absolute;
@@ -103,4 +113,16 @@ h1 {
 
 .form-control {
     width: 30% !important;
+}
+
+.line-form {
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    border-bottom: 2px solid black !important;
+}
+
+.line-form:focus {
+    box-shadow: none !important;
+    outline: none !important;
 }
