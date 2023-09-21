@@ -6,6 +6,7 @@
 
 {% block main %}
     <div class="container-main">
+        <h1 style="margin-bottom: 5vh;">Profile Settings</h1>
         <form action="/profile_settings" method="post">
             <div class="mb-3">
                 <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">

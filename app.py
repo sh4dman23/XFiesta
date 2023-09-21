@@ -111,7 +111,7 @@ def check_username():
         else:
             return jsonify({"result": True})
     else:
-        return apology("Not Found!", 404)
+        abort(404)
 
 
 # Profile Page
@@ -169,14 +169,15 @@ def manage_friends():
                 db.execute("COMMIT")
                 return jsonify({"result": True}), 200
             elif friends[0]["friends"] == 0:
-                db.execute("UPDATE friends SET user_id1 = ?, user_id2 = ?, friends = 1;", session["user_id"], id)
-                db.execute("UPDATE friends SET user_id1 = ?, user_id2 = ?, friends = 1;", id, session["user_id"])
+                db.execute("UPDATE friends SET friends = 1 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+                db.execute("UPDATE friends SET friends = 1 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
                 db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], id)
                 db.execute("COMMIT")
                 return jsonify({"result": True}), 200
             else:
-                db.execute("UPDATE friends SET user_id1 = ?, user_id2 = ?, friends = 0;", session["user_id"], id)
-                db.execute("UPDATE friends SET user_id1 = ?, user_id2 = ?, friends = 0;", id, session["user_id"])
+                db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+                db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+                db.execute("DELETE FROM friends WHERE friends = 0;")
                 db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
                 db.execute("COMMIT")
                 return jsonify({"result": False}), 200
@@ -200,3 +201,67 @@ def profile_settings():
                 session["user_id"]
             )
         return render_template("profile_settings.html", user=user[0], interests=interests)
+
+
+# User Account Actions
+@app.route("/account_settings")
+@login_required
+def account_settings():
+    return render_template("account_settings.html")
+
+
+# Change User Account Details
+@app.route("/change_account", methods=["GET", "POST"])
+@login_required
+def change_account():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password_old = request.form.get("password_old")
+        password_new = request.form.get("password_new")
+        password_new2 = request.form.get("password_new2")
+
+        if not username or not password_old or not password_new or not password_new2 or password_new != password_new2:
+            return apology("Invalid Submission!")
+
+        check = db.execute("SELECT * FROM users WHERE username = ?;", username)
+        if len(check) > 0 and check[0]["id"] != session["user_id"]:
+            return apology("Username already exists!")
+
+        user_prev = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
+        if not check_password_hash(user_prev[0]["hash"], password_new):
+            return apology("Incorrect Password!")
+
+        db.execute("UPDATE users SET username = ?, hash = ? WHERE id = ?;", username, generate_password_hash(password_new), session["user_id"])
+
+    else:
+        user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+        return render_template("change_account.html", username=user[0]["username"])
+
+
+@app.route("/remove_account", methods=["GET", "POST"])
+@login_required
+def remove_account():
+    if request.method == "POST":
+        password = request.form.get("password")
+        user = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
+        confirm = request.form.get("confirmation")
+        if not confirm or not check_password_hash(user[0]["hash"], password):
+            return apology("Invalid Submission Or Incorrect Password!")
+        elif confirm == "No":
+            return redirect("/account_settings")
+        elif confirm == "Yes" and check_password_hash(user[0]["hash"], password):
+            try:
+                db.execute("BEGIN TRANSACTION")
+                db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
+                db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+                db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+                db.execute("COMMIT")
+                session.clear()
+                return redirect("/welcome")
+            except Exception as e:
+                db.execute("ROLLBACK")
+                return apology("Account Deletion Failed!")
+        else:
+            return apology("Invalid Submission!")
+    else:
+        return render_template("remove_account.html")
