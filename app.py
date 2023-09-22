@@ -10,16 +10,51 @@ import logging
 
 logging.getLogger("cs50").disabled = False
 
+# Configure cs50 to start using site's database
+db = SQL("sqlite:///xfiesta.db")
+
+
+list_of_interests = [
+    "Gaming",
+    "Traveling",
+    "Reading",
+    "Cooking",
+    "Hiking",
+    "Photography",
+    "Painting",
+    "Music",
+    "Dancing",
+    "Sports",
+    "Movies",
+    "Writing",
+    "Yoga",
+    "Meditation",
+    "Fishing",
+    "Shopping",
+    "Swimming",
+    "Camping",
+    "Skiing",
+    "Gardening",
+    "Crafts",
+    "Singing",
+    "Animals",
+    "Technology",
+    "History",
+    "Science",
+    "Art",
+    "Fashion",
+    "Food",
+    "Fitness"
+]
+
 app = Flask(__name__)
+app.run(debug=True)
 
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 app.secret_key = os.getenv("SECRET_KEY") or "b'\xf2F\xff\x9b4\xf1g\xa9\xe7\t\x81&{\xd5\x975\x87\xfb5y>\x0c1\xa1'"
-
-# Configure cs50 to start using site's database
-db = SQL("sqlite:///xfiesta.db")
 
 
 # Ensure responses aren't cached
@@ -193,14 +228,38 @@ def manage_friends():
 @login_required
 def profile_settings():
     if request.method == "POST":
-        ...
+        fullname = request.form.get("name")
+        about_me = request.form.get("about_me")
+        interest_list = request.form.getlist("interest")
+
+        if not fullname or len(fullname) > 70 or len(about_me) > 640:
+            return apology("Invalid Submission!")
+
+        db.execute("UPDATE users SET fullname = ?, about_me = ? WHERE id = ?;", fullname, about_me, session["user_id"])
+        db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+        if interest_list:
+            db.execute("BEGIN TRANSACTION")
+            for interest in interest_list:
+                if interest in list_of_interests:
+                    interest_id = db.execute("SELECT id FROM interests WHERE interest = ?;", interest)
+                    db.execute("INSERT INTO user_interests(user_id, interest_id) VALUES(?, ?);", session["user_id"], interest_id[0]["id"])
+                else:
+                    db.execute("ROLLBACK")
+                    return apology("Invalid Submission!")
+            db.execute("COMMIT")
+
+        return redirect("/profile")
     else:
         user = db.execute("SELECT fullname, about_me FROM users WHERE id = ?;", session["user_id"])
         interests = db.execute(
                 "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
                 session["user_id"]
             )
-        return render_template("profile_settings.html", user=user[0], interests=interests)
+        if interests:
+            return render_template("profile_settings.html", user=user[0], user_interests=interests, list_of_interests=list_of_interests)
+        else:
+            return render_template("profile_settings.html", user=user[0], list_of_interests=list_of_interests)
 
 
 # User Account Actions
@@ -238,6 +297,7 @@ def change_account():
         return render_template("change_account.html", username=user[0]["username"])
 
 
+# Permanently Delete User Account and Data
 @app.route("/remove_account", methods=["GET", "POST"])
 @login_required
 def remove_account():
@@ -265,3 +325,12 @@ def remove_account():
             return apology("Invalid Submission!")
     else:
         return render_template("remove_account.html")
+
+
+@app.route("/friends")
+@login_required
+def friends():
+    friends = db.execute("SELECT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+    requests = db.execute("SELECT id, username FROM users WHERE id IN (SELECT user_id1 FROM friends WHERE user_id2 = ? AND friends = 2);", session["user_id"])
+    return render_template("friends.html", friends=friends, requests=requests)
+

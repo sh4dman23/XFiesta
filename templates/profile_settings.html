@@ -5,20 +5,91 @@
 {% endblock %}
 
 {% block main %}
-    <div class="container-main">
+    <div class="container-main o-profile" style="display: block;">
         <h1 style="margin-bottom: 5vh;">Profile Settings</h1>
         <form action="/profile_settings" method="post">
             <div class="mb-3">
                 <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">
             </div>
-            <div class="mb-3">
-                <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" value="{{ user['about_me'] }}" placeholder="About Me" maxlength="640" name="about_me">
+            <div class="mb-3 centered">
+                <textarea class="form-control textbox-area line-form" placeholder="About Me" maxlength="640" name="about_me" rows="5">{% if user['about_me'] %}{{ user['about_me'] }}{% else %}{% endif %}</textarea>
             </div>
             <div class="mb-3">
-                <input autocomplete="off" class="form-control mx-auto w-auto line-form" id="interests" value="" placeholder="Interests" type="text" name="interests">
+                <input autocomplete="off" class="form-control mx-auto w-auto line-form" id="interestInput" value="" placeholder="Interests e.g. #interest1 #interest2" type="text" name="interests">
+                <div id="warning" style="color: red;"></div>
+                <div id="interestList">
+                    {% if user_interests %}
+                        {% for interest in user_interests %}
+                            <label class="form-check-label">
+                                <input class="form-check-input" type="checkbox" name="interest" value="{{ interest['interest'] }}" checked>
+                                {{ interest['interest'] }}
+                            </label>
+                        {% endfor %}
+                    {% endif %}
+                </div>
             </div>
-            <div id="warning"></div>
-            <button class="btn btn-primary" name="submit" value="" type="submit">Save Changes</button>
+            <button class="btn btn-primary btn-prof" name="submit" value="" type="submit">Save Changes</button>
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function HTMLDecode(html) {
+                var txt = document.createElement("textarea");
+                txt.innerHTML = html;
+                return txt.value;
+            }
+            function addInterest(interest) {
+                const checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.name = "interest";
+                checkbox.checked = true;
+                checkbox.classList.add("form-check-input");
+                checkbox.value = interest;
+
+                const label = document.createElement("label");
+                label.classList.add("form-check-label");
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(interest));
+
+                interestList.appendChild(label);
+            }
+
+            let interestInput = document.getElementById("interestInput");
+            let interestList = document.getElementById("interestList");
+
+            interestInput.addEventListener("keyup", function (event) {
+                if (event.key === " " && interestInput.value.trim() !== "") {
+                    let bool1 = true;
+                    let interest = interestInput.value.trim();
+                    let list = {{ list_of_interests | tojson | safe }};
+                    for (var i = 0; i < list.length; i++) {
+                        list[i] = HTMLDecode(list[i]);
+                    }
+                    if (interest[0] == '#') {
+                        interest = interest.slice(1);
+                        let interest_proper = interest.charAt(0).toUpperCase() + interest.slice(1).toLowerCase();
+
+                        let current_interests = document.getElementsByName('interest');
+                        for (let current_interest of current_interests) {
+                            if (current_interest.value == interest_proper) {
+                                bool1 = false;
+                            }
+                        }
+
+                        if (list.includes(interest_proper) && bool1) {
+                            addInterest(interest_proper);
+                            document.getElementById('warning').innerHTML = ""
+                        } else {
+                            document.getElementById('warning').innerHTML = "Interest already included or does not exist!"
+                        }
+
+                        interestInput.value = "";
+                    } else {
+                        document.getElementById('warning').innerHTML = "Interests must start with '#'!";
+                        interestInput.value = "";
+                    }
+                }
+            });
+        });
+    </script>
 {% endblock %}

@@ -117,7 +117,7 @@ h1 {
 
 
 .o-profile {
-    margin: 5vw 5vh;
+    margin: 15vh 2.5vw;
     background-color: aliceblue;
     border: 5px solid transparent;
     border-radius: 10px;
@@ -159,4 +159,27 @@ h1 {
 .line-form:focus {
     box-shadow: none !important;
     outline: none !important;
+}
+
+
+#interestList {
+    margin-top: 10px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.textbox-area {
+    justify-content: center;
+}
+
+.centered {
+    display: flex;
+    justify-content: center;
+}
+
+textarea {
+    bottom: 0 !important;
 }

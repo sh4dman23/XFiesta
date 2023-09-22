@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
-    <link href="/static/profiles.css" rel="stylesheet">
+    <link href="/static/styles/profiles.css" rel="stylesheet">
 {% endblock %}
 
 {% block title %}
@@ -10,7 +10,7 @@
 
 {% block main %}
     <div class="container-main o-profile">
-        <div class="profile-pic"><img src="static/user_profile_pic.png"></div>
+        <div class="profile-pic"><img src="static/images/user_profile_pic.png"></div>
         <div class="fullname">
             <div class="p-header">{{ user["fullname"] }}</div>
         </div>

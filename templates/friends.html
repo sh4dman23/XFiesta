@@ -1,0 +1,107 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/styles/friends.css" rel="stylesheet">
+{% endblock %}
+
+{% block title %}
+    Friends
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div class="bar">
+            <div>
+                <img src="/static/friends-icon.png" width="40px">
+                <span>Friends</span>
+            </div>
+            <div>
+                <button id="all_button" class="btn btn-primary btn-prof">All Friends</button>
+                <button id="req_button" class="btn btn-primary btn-prof">Friend Requests</button>
+            </div>
+        </div>
+        <div class="o-profile" style="margin-top: 2.5vh;">
+            <div id="all_tab">
+                <h3>All Friends</h3>
+                {% if friends %}
+                    {% for friend in friends %}
+                        <div id="{{ friend['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button name="remove_button" class="remove-friend-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    You don't seem to have added any friends yet!
+                {% endif %}
+            </div>
+            <div id="req_tab" style="display: none">
+                <h3>Friend Requests</h3>
+                {% if requests %}
+                    {% for friend in requests %}
+                        <div id="{{ friend['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button name="remove_button" class="remove-friend-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    You don't have any friend requests!
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // All Friends Tab
+            document.getElementById('all_button').onclick = function() {
+                document.getElementById('all_tab').style.display = 'block';
+                document.getElementById('req_tab').style.display = 'none';
+            };
+
+            // Friend Request Tab
+            document.getElementById('req_button').onclick = function() {
+                document.getElementById('req_tab').style.display = 'block';
+                document.getElementById('all_tab').style.display = 'none';
+            };
+
+            // Remove Friends
+            remove_buttons = document.getElementsByName('remove_button');
+            for (let button of remove_buttons) {
+                button.onclick = function() {
+                    friend_id = this.value;
+
+                    var aj = new XMLHttpRequest();
+                    aj.onreadystatechange = async function() {
+                        if (aj.readyState == 4 && aj.status == 200) {
+                            var data = JSON.parse(aj.responseText);
+                            if (!data.result) {
+                                document.getElementById(friend_id).remove();
+                            }
+                        }
+                    };
+
+                    aj.open("POST", "/manage_friends", true)
+                    aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                    aj.setRequestHeader("X-Requested-With", "XMLHttpRequest")
+                    aj.send("user_id="+friend_id)
+                };
+            }
+        });
+    </script>
+{% endblock %}
