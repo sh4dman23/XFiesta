@@ -34,3 +34,4 @@ CREATE TABLE friends (
     FOREIGN KEY(user_id1) REFERENCES users(id),
     FOREIGN KEY(user_id2) REFERENCES users(id)
 );
+

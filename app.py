@@ -5,6 +5,7 @@ from flask import Flask, redirect, render_template, request, session, jsonify, a
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology
+import random
 
 import logging
 
@@ -48,7 +49,6 @@ list_of_interests = [
 ]
 
 app = Flask(__name__)
-app.run(debug=True)
 
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
@@ -113,7 +113,7 @@ def register():
         password2 = request.form.get("confirm")
 
         # Verify input
-        if not username or not fullname or not password1 or not password2 or password1 != password2 or len(password1) < 8:
+        if not username or not fullname or not password1 or not password2 or password1 != password2 or len(fullname) > 70 or len(password1) < 8:
             return apology("Invalid Submission!")
         check = db.execute("SELECT * FROM users WHERE username = ?;", username)
         if len(check) > 0:
@@ -155,7 +155,7 @@ def check_username():
 def profile():
     username = request.args.get("username")
 
-    # User does not exist or is current user
+    # No username found
     if (not username or username.strip() == ""):
         user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE id = ?;", session["user_id"])
 
@@ -175,50 +175,92 @@ def profile():
         # Check for friend status
         friends_status = False
         friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], user[0]["id"])
-        if not friends or friends[0]["friends"] == 0:
-            friends_status = False
-        else:
-            friends_status = True
-
+        if not friends:
+            status = 0
+        if friends:
+            if friends[0]["friends"] not in [0, 1, 2, 3]:
+                abort(404)
+            else:
+                status = friends[0]["friends"]
         # Check for interests
         interests = db.execute(
                 "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
                 user[0]["id"]
             )
-        return render_template("o_user_profile.html", user=user[0], interests=interests, friends=friends_status)
+        return render_template("o_user_profile.html", user=user[0], interests=interests, friends_status=status)
 
 
-# Update friends status via AJAX
+# Update friends status via AJAX (Only handles friend requests, request declination and friend removal). DOES NOT HANDLE ACCEPT REQUESTS!
 @app.route("/manage_friends", methods=["GET", "POST"])
 @login_required
 def manage_friends():
     if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
         id = request.form.get("user_id")
+        if not id or not id.isdigit() or id == session["user_id"]:
+            abort(404)
+
+        id = int(id)
         try:
             db.execute("BEGIN TRANSACTION")
             friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
             if not friends:
-                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 1);", session["user_id"], id)
-                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 1);", id, session["user_id"])
-                db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
+                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
                 db.execute("COMMIT")
-                return jsonify({"result": True}), 200
+                return jsonify({"result": "Request Sent"}), 200
             elif friends[0]["friends"] == 0:
-                db.execute("UPDATE friends SET friends = 1 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-                db.execute("UPDATE friends SET friends = 1 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-                db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+                db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+                db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
                 db.execute("COMMIT")
-                return jsonify({"result": True}), 200
+                return jsonify({"result": "Request Sent"}), 200
             else:
                 db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
                 db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
                 db.execute("DELETE FROM friends WHERE friends = 0;")
-                db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+
+                if friends[0]["friends"] == 1:
+                    db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+
                 db.execute("COMMIT")
-                return jsonify({"result": False}), 200
+                return jsonify({"result": "Removed Friend"}), 200
         except Exception as e:
             db.execute("ROLLBACK")
             return apology("Friend could not be added/removed!")
+    else:
+        abort(404)
+
+
+# Handles Accept Requests
+@app.route("/accept_friend_request", methods=["GET", "POST"])
+def accept_friend_request():
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        friend_id = request.form.get("user_id")
+        if not friend_id or friend_id == session["user_id"]:
+            abort(404)
+
+        friend_id = int(friend_id)
+
+        try:
+            db.execute("BEGIN TRANSACTION")
+
+            # Check for validity of request
+            status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
+            if not status or status[0]["friends"] != 3:
+                db.execute("ROLLBACK")
+                return jsonify({"result": False})
+
+            db.execute(
+                "UPDATE friends SET friends = 1 WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);"
+                , session["user_id"], friend_id, friend_id, session["user_id"]
+            )
+            db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
+            db.execute("COMMIT")
+            return jsonify({"result": True})
+
+        except Exception as e:
+            db.execute("ROLLBACK")
+            return jsonify({"result": False})
+
     else:
         abort(404)
 
@@ -253,9 +295,9 @@ def profile_settings():
     else:
         user = db.execute("SELECT fullname, about_me FROM users WHERE id = ?;", session["user_id"])
         interests = db.execute(
-                "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
-                session["user_id"]
-            )
+            "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
+            session["user_id"]
+        )
         if interests:
             return render_template("profile_settings.html", user=user[0], user_interests=interests, list_of_interests=list_of_interests)
         else:
@@ -305,15 +347,21 @@ def remove_account():
         password = request.form.get("password")
         user = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
         confirm = request.form.get("confirmation")
-        if not confirm or not check_password_hash(user[0]["hash"], password):
+        if not password or not confirm or not check_password_hash(user[0]["hash"], password):
             return apology("Invalid Submission Or Incorrect Password!")
         elif confirm == "No":
             return redirect("/account_settings")
         elif confirm == "Yes" and check_password_hash(user[0]["hash"], password):
             try:
+                # Delete all user data
                 db.execute("BEGIN TRANSACTION")
                 db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
                 db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+
+                # Remove user from everyone's friendlist
+                db.execute("UPDATE users SET friends = friends - 1 WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+
                 db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
                 db.execute("COMMIT")
                 session.clear()
@@ -327,10 +375,33 @@ def remove_account():
         return render_template("remove_account.html")
 
 
+# Friends Page
 @app.route("/friends")
 @login_required
 def friends():
-    friends = db.execute("SELECT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
-    requests = db.execute("SELECT id, username FROM users WHERE id IN (SELECT user_id1 FROM friends WHERE user_id2 = ? AND friends = 2);", session["user_id"])
-    return render_template("friends.html", friends=friends, requests=requests)
+    friends = db.execute("SELECT DISTINCT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+    requests = db.execute("SELECT DISTINCT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 3);", session["user_id"])
+    recommendations = db.execute(
+        """
+        SELECT DISTINCT u.id AS id, u.username AS username, u.fullname AS fullname
+        FROM users u
+        JOIN user_interests ui ON u.id = ui.user_id
+        WHERE ui.interest_id IN (SELECT interest_id FROM user_interests WHERE user_id = ?)
+        AND u.id != ?
+        AND u.id NOT IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends != 0)
+        LIMIT 20;
+        """
+        , session["user_id"], session["user_id"], session["user_id"]
+    )
 
+    random.shuffle(recommendations)
+    return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
+
+
+# Create a post page
+app.route("/post", methods=["GET", "POST"])
+def post():
+    if request.method == "POST":
+        ...
+    else:
+        return render_template("create_a_post.html")

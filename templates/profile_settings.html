@@ -12,7 +12,7 @@
                 <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">
             </div>
             <div class="mb-3 centered">
-                <textarea class="form-control textbox-area line-form" placeholder="About Me" maxlength="640" name="about_me" rows="5">{% if user['about_me'] %}{{ user['about_me'] }}{% else %}{% endif %}</textarea>
+                <textarea id="about_me" name="about_me" class="form-control textbox-area line-form" placeholder="About Me" maxlength="640" rows="5">{% if user['about_me'] %}{{ user['about_me'] }}{% else %}{% endif %}</textarea>
             </div>
             <div class="mb-3">
                 <input autocomplete="off" class="form-control mx-auto w-auto line-form" id="interestInput" value="" placeholder="Interests e.g. #interest1 #interest2" type="text" name="interests">
@@ -31,6 +31,7 @@
             <button class="btn btn-primary btn-prof" name="submit" value="" type="submit">Save Changes</button>
         </form>
     </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             function HTMLDecode(html) {
@@ -57,11 +58,12 @@
             let interestInput = document.getElementById("interestInput");
             let interestList = document.getElementById("interestList");
 
+            let list = {{ list_of_interests | tojson | safe }};
+
             interestInput.addEventListener("keyup", function (event) {
                 if (event.key === " " && interestInput.value.trim() !== "") {
                     let bool1 = true;
                     let interest = interestInput.value.trim();
-                    let list = {{ list_of_interests | tojson | safe }};
                     for (var i = 0; i < list.length; i++) {
                         list[i] = HTMLDecode(list[i]);
                     }

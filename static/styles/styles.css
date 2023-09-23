@@ -25,6 +25,17 @@
         pointer-events: all;
         padding-left: 1vw;
     }
+    .container-main {
+        margin-top: 10vh;
+    }
+
+    input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {
+        width: 70vw !important;
+    }
+
+    #about_me {
+        width: 70vw !important;
+    }
 }
 
 body {
@@ -65,12 +76,6 @@ h1 {
     text-align: center;
     padding: 20px;
     margin-top: 10vh;
-}
-
-@media (max-width: 768px) {
-    .container-main {
-        margin-top: 10vh;
-    }
 }
 
 .welcome {
@@ -117,7 +122,10 @@ h1 {
 
 
 .o-profile {
-    margin: 15vh 2.5vw;
+    margin: 15vh;
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
     background-color: aliceblue;
     border: 5px solid transparent;
     border-radius: 10px;
@@ -163,12 +171,16 @@ h1 {
 
 
 #interestList {
-    margin-top: 10px;
+    margin-top: 10px !important;
+    display: flex !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
 }
 
 label {
-    display: block;
-    margin-bottom: 5px;
+    display: block !important;
+    margin-left: 5px !important;
+    margin-bottom: 5px !important;
 }
 
 .textbox-area {

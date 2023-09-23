@@ -2,6 +2,7 @@
 
 {% block optional_c %}
     <link href="/static/styles/friends.css" rel="stylesheet">
+    <script src="/static/scripts/friends.js"></script>
 {% endblock %}
 
 {% block title %}
@@ -11,13 +12,18 @@
 {% block main %}
     <div class="container-main">
         <div class="bar">
-            <div>
-                <img src="/static/friends-icon.png" width="40px">
-                <span>Friends</span>
+            <div id="friends-logo">
+                <div>
+                    <img src="/static/images/friends-icon.png" width="40px">
+                    <span>Friends</span>
+                </div>
             </div>
-            <div>
-                <button id="all_button" class="btn btn-primary btn-prof">All Friends</button>
-                <button id="req_button" class="btn btn-primary btn-prof">Friend Requests</button>
+            <div id="tabs">
+                <div>
+                    <button id="all_button" class="btn btn-primary btn-prof">All Friends</button>
+                    <button id="req_button" class="btn btn-primary btn-prof">Friend Requests</button>
+                    <button id="recom_button" class="btn btn-primary btn-prof">Recommendations</button>
+                </div>
             </div>
         </div>
         <div class="o-profile" style="margin-top: 2.5vh;">
@@ -34,7 +40,7 @@
                                 </div>
                             </div>
                             <div class="actions">
-                                <button name="remove_button" class="remove-friend-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
+                                <button name="remove_button" class="action-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
                             </div>
                         </div>
                     {% endfor %}
@@ -55,7 +61,8 @@
                                 </div>
                             </div>
                             <div class="actions">
-                                <button name="remove_button" class="remove-friend-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
+                                <button name="accept_button" class="action-button" value="{{ friend['id'] }}" type="button"><img style="width: 85%; height: auto;" src="/static/images/Tick-logo.png"></button>
+                                <button name="reject_button" class="action-button" value="{{ friend['id'] }}" type="button"><img style="width: 85%; height: auto;" src="/static/images/cross-logo.png"></button>
                             </div>
                         </div>
                     {% endfor %}
@@ -63,45 +70,28 @@
                     You don't have any friend requests!
                 {% endif %}
             </div>
+            <div id="recom_tab" style="display: none">
+                <h3>Friend Recommendations</h3>
+                {% if recommendations %}
+                    {% for people in recommendations %}
+                        <div id="{{ people['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile?username={{ people['username'] }}" style="text-decoration: none; color: inherit;">{{ people['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile?username={{ people['username'] }}" style="text-decoration: none; color: inherit;">@{{ people['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button name="add_recommendation_button" class="action-button" value="{{ people['id'] }}" type="button"><img src="/static/images/add-friend.png"></button>
+                                <button name="remove_recommendation_button" class="action-button" value="{{ people['id'] }}" type="button"><img style="width: 85%; height: auto;" src="/static/images/cross-logo.png"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    This place seems empty!
+                {% endif %}
+            </div>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // All Friends Tab
-            document.getElementById('all_button').onclick = function() {
-                document.getElementById('all_tab').style.display = 'block';
-                document.getElementById('req_tab').style.display = 'none';
-            };
-
-            // Friend Request Tab
-            document.getElementById('req_button').onclick = function() {
-                document.getElementById('req_tab').style.display = 'block';
-                document.getElementById('all_tab').style.display = 'none';
-            };
-
-            // Remove Friends
-            remove_buttons = document.getElementsByName('remove_button');
-            for (let button of remove_buttons) {
-                button.onclick = function() {
-                    friend_id = this.value;
-
-                    var aj = new XMLHttpRequest();
-                    aj.onreadystatechange = async function() {
-                        if (aj.readyState == 4 && aj.status == 200) {
-                            var data = JSON.parse(aj.responseText);
-                            if (!data.result) {
-                                document.getElementById(friend_id).remove();
-                            }
-                        }
-                    };
-
-                    aj.open("POST", "/manage_friends", true)
-                    aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                    aj.setRequestHeader("X-Requested-With", "XMLHttpRequest")
-                    aj.send("user_id="+friend_id)
-                };
-            }
-        });
-    </script>
 {% endblock %}
