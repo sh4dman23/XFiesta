@@ -35,3 +35,24 @@ CREATE TABLE friends (
     FOREIGN KEY(user_id2) REFERENCES users(id)
 );
 
+CREATE TABLE posts (
+    id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    likes INTEGER NOT NULL DEFAULT 0,
+    comments INTEGER NOT NULL DEFAULT 0,
+    title TEXT NOT NULL,
+    contents TEXT NOT NULL,
+    imagelocation TEXT DEFAULT NULL,
+    post_time TIMESTAMP NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE post_tags (
+    id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY(post_id) REFERENCES posts(id),
+    FOREIGN KEY(tag_id) REFERENCES interests(id)
+);

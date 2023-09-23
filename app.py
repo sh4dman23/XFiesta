@@ -3,6 +3,7 @@ import os
 from cs50 import SQL
 from flask import Flask, redirect, render_template, request, session, jsonify, abort
 from flask_session import Session
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology
 import random
@@ -201,17 +202,17 @@ def manage_friends():
 
         id = int(id)
         try:
-            db.execute("BEGIN TRANSACTION")
+            db.execute("BEGIN TRANSACTION;")
             friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
             if not friends:
                 db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
                 db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
-                db.execute("COMMIT")
+                db.execute("COMMIT;")
                 return jsonify({"result": "Request Sent"}), 200
             elif friends[0]["friends"] == 0:
                 db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
                 db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-                db.execute("COMMIT")
+                db.execute("COMMIT;")
                 return jsonify({"result": "Request Sent"}), 200
             else:
                 db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
@@ -221,10 +222,10 @@ def manage_friends():
                 if friends[0]["friends"] == 1:
                     db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
 
-                db.execute("COMMIT")
+                db.execute("COMMIT;")
                 return jsonify({"result": "Removed Friend"}), 200
         except Exception as e:
-            db.execute("ROLLBACK")
+            db.execute("ROLLBACK;")
             return apology("Friend could not be added/removed!")
     else:
         abort(404)
@@ -241,12 +242,12 @@ def accept_friend_request():
         friend_id = int(friend_id)
 
         try:
-            db.execute("BEGIN TRANSACTION")
+            db.execute("BEGIN TRANSACTION;")
 
             # Check for validity of request
             status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
             if not status or status[0]["friends"] != 3:
-                db.execute("ROLLBACK")
+                db.execute("ROLLBACK;")
                 return jsonify({"result": False})
 
             db.execute(
@@ -254,11 +255,11 @@ def accept_friend_request():
                 , session["user_id"], friend_id, friend_id, session["user_id"]
             )
             db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
-            db.execute("COMMIT")
+            db.execute("COMMIT;")
             return jsonify({"result": True})
 
         except Exception as e:
-            db.execute("ROLLBACK")
+            db.execute("ROLLBACK;")
             return jsonify({"result": False})
 
     else:
@@ -281,15 +282,15 @@ def profile_settings():
         db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
 
         if interest_list:
-            db.execute("BEGIN TRANSACTION")
+            db.execute("BEGIN TRANSACTION;")
             for interest in interest_list:
                 if interest in list_of_interests:
                     interest_id = db.execute("SELECT id FROM interests WHERE interest = ?;", interest)
                     db.execute("INSERT INTO user_interests(user_id, interest_id) VALUES(?, ?);", session["user_id"], interest_id[0]["id"])
                 else:
-                    db.execute("ROLLBACK")
+                    db.execute("ROLLBACK;")
                     return apology("Invalid Submission!")
-            db.execute("COMMIT")
+            db.execute("COMMIT;")
 
         return redirect("/profile")
     else:
@@ -339,42 +340,6 @@ def change_account():
         return render_template("change_account.html", username=user[0]["username"])
 
 
-# Permanently Delete User Account and Data
-@app.route("/remove_account", methods=["GET", "POST"])
-@login_required
-def remove_account():
-    if request.method == "POST":
-        password = request.form.get("password")
-        user = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
-        confirm = request.form.get("confirmation")
-        if not password or not confirm or not check_password_hash(user[0]["hash"], password):
-            return apology("Invalid Submission Or Incorrect Password!")
-        elif confirm == "No":
-            return redirect("/account_settings")
-        elif confirm == "Yes" and check_password_hash(user[0]["hash"], password):
-            try:
-                # Delete all user data
-                db.execute("BEGIN TRANSACTION")
-                db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
-                db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
-
-
-                # Remove user from everyone's friendlist
-                db.execute("UPDATE users SET friends = friends - 1 WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
-
-                db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
-                db.execute("COMMIT")
-                session.clear()
-                return redirect("/welcome")
-            except Exception as e:
-                db.execute("ROLLBACK")
-                return apology("Account Deletion Failed!")
-        else:
-            return apology("Invalid Submission!")
-    else:
-        return render_template("remove_account.html")
-
-
 # Friends Page
 @app.route("/friends")
 @login_required
@@ -397,11 +362,128 @@ def friends():
     random.shuffle(recommendations)
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
 
-
-# Create a post page
-app.route("/post", methods=["GET", "POST"])
+# Allows users to create posts
+@app.route("/createpost", methods=["GET", "POST"])
 def post():
     if request.method == "POST":
-        ...
+        image = request.files["image-upload"]
+        title = request.form.get("title")
+        contents = request.form.get("contents")
+        tags = request.form.getlist("tag")
+
+
+        # Validate input
+        if not title or not contents or not tags or len(title) > 70 or len(contents) > 640:
+            return apology("Invalid Submission!")
+
+        try:
+            db.execute("BEGIN TRANSACTION;")
+
+            # Add post to database
+            post_id = db.execute("INSERT INTO posts(user_id, title, contents, post_time) VALUES(?, ?, ?, CURRENT_TIMESTAMP);" , session["user_id"], title, contents)
+
+            # Increase post count for user
+            db.execute("UPDATE users SET posts = posts + 1 WHERE id = ?;", session["user_id"])
+
+            # If image was uploaded
+            if image and image != "":
+
+                # Sanitize and validate input
+                image.filename = secure_filename(image.filename).lower()
+                print(image.filename)
+                if not image.filename.endswith(".png") and not image.filename.endswith(".jfif") and not image.filename.endswith(".pjp") and not image.filename.endswith(".jpg") and not image.filename.endswith(".jpeg") and not image.filename.endswith(".pjpeg"):
+                    raise Exception("Invalid Image Format!")
+
+                # Save image in server
+                imagelocation = os.path.join("server_hosted_files", "posts", str(post_id))
+                if not os.path.exists(imagelocation):
+                    os.makedirs(imagelocation)
+                imagelocation = os.path.join(imagelocation, str(image.filename))
+                image.save(imagelocation)
+                db.execute("UPDATE posts SET imagelocation = ? WHERE id = ?;", imagelocation, post_id)
+
+            # Add post tags
+            for tag in tags:
+                if tag in list_of_interests:
+                    tag_id = db.execute("SELECT id FROM interests WHERE interest = ?;", tag)
+                    db.execute("INSERT INTO post_tags(post_id, tag_id) VALUES(?, ?);", post_id, tag_id[0]["id"])
+                else:
+                    raise Exception("Invalid Tags!")
+
+            # Everything completed successfully
+            db.execute("COMMIT;")
+
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            return apology(f"{e}")
+
+        return redirect("/")
     else:
-        return render_template("create_a_post.html")
+        return render_template("create_a_post.html", list_of_tags=list_of_interests)
+
+
+# Permanently delete user account and data
+@app.route("/remove_account", methods=["GET", "POST"])
+@login_required
+def remove_account():
+    if request.method == "POST":
+        password = request.form.get("password")
+        user = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
+        confirm = request.form.get("confirmation")
+        if not password or not confirm:
+            return apology("Invalid Submission!")
+        elif not check_password_hash(user[0]["hash"], password):
+            return apology("Incorrect Password!")
+        elif confirm == "No":
+            return redirect("/account_settings")
+        elif confirm == "Yes" and check_password_hash(user[0]["hash"], password):
+            try:
+                # Begin deletion of all user data
+                db.execute("BEGIN TRANSACTION;")
+
+                # Remove user from everyone's friendlist
+                db.execute("UPDATE users SET friends = friends - 1 WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+
+                # Remove user from friends table
+                db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+
+                # Delete all images from posts by user
+                images = db.execute("SELECT imagelocation FROM posts WHERE user_id = ?;", session["user_id"])
+
+                for image in images:
+                    if image["imagelocation"]:
+                        try:
+                            # Remove image
+                            os.remove(image["imagelocation"])
+                            directory = os.path.dirname(image["imagelocation"])
+
+                            # Remove folder (if empty)
+                            if not os.listdir(directory):
+                                os.removedirs(directory)
+                        except OSError:
+                            raise Exception("Error Removing Posts!")
+
+                # Remove all posts by user including tags
+                db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
+                db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
+
+                # Delete all user interests
+                db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+                # Delete remaining user data
+                db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
+
+                db.execute("COMMIT;")
+                session.clear()
+                return redirect("/welcome")
+            except Exception as e:
+                db.execute("ROLLBACK;")
+                return apology(f"Account Deletion Failed! - {e}")
+        else:
+            return apology("Invalid Submission!")
+    else:
+        return render_template("remove_account.html")
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='127.0.0.1', threaded=True)

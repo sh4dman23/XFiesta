@@ -11,33 +11,6 @@
     user-select: none;
 }
 
-@media screen and (max-width: 768px) {
-    .navbar {
-        background-color: transparent !important;
-    }
-    .navbar-collapse {
-        background-color: rgba(255, 255, 255, 0.5);
-        backdrop-filter: blur(2px);
-        pointer-events: none;
-    }
-    .navbar-collapse * {
-        font-weight: 700 !important;
-        pointer-events: all;
-        padding-left: 1vw;
-    }
-    .container-main {
-        margin-top: 10vh;
-    }
-
-    input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {
-        width: 70vw !important;
-    }
-
-    #about_me {
-        width: 70vw !important;
-    }
-}
-
 body {
     max-width: 100%;
     overflow-x: hidden;
@@ -122,7 +95,7 @@ h1 {
 
 
 .o-profile {
-    margin: 15vh;
+    margin: 10vh;
     width: 95%;
     margin-left: auto;
     margin-right: auto;
@@ -194,4 +167,28 @@ label {
 
 textarea {
     bottom: 0 !important;
+}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        background-color: transparent !important;
+    }
+    .navbar-collapse {
+        background-color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(2px);
+        pointer-events: none;
+    }
+    .navbar-collapse * {
+        font-weight: 700 !important;
+        pointer-events: all;
+        padding-left: 1vw;
+    }
+
+    input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {
+        width: 70vw !important;
+    }
+
+    #about_me {
+        width: 70vw !important;
+    }
 }
