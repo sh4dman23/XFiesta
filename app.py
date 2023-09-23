@@ -73,6 +73,12 @@ def page_not_found(e):
     return apology("Page Not Found!", 404)
 
 
+# Server hosted images
+@app.route('/path/<path:subpath>')
+def serve_file_in_dir(subpath):
+    return send_from_directory('/server_hosted_files/', subpath)
+
+
 @app.route("/")
 @login_required
 def index():
@@ -361,6 +367,15 @@ def friends():
 
     random.shuffle(recommendations)
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
+
+
+@app.route("/posts", methods=["GET", "POST"])
+def posts():
+    if request.method == "POST":
+        ...
+    else:
+        return render_template("posts.html")
+
 
 # Allows users to create posts
 @app.route("/createpost", methods=["GET", "POST"])

@@ -103,4 +103,15 @@
     .friend-box:hover {
         background-color: white;
     }
+    #friends-logo {
+        height: 2rem !important;
+        width: auto;
+        margin-top: -1%;
+        margin-left: 0rem;
+    }
+    .btn-tab {
+        height: 2rem !important;
+        width: auto !important;
+        padding: 0px 0.2rem;
+    }
 }

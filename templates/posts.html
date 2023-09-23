@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/styles/posts.css" rel="stylesheet">
+{% endblock %}
+
+{% block title %}
+    Posts
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div class="bar">
+            <div id="posts-logo">
+                <div>
+                    <img src="/static/images/friends-icon.png" alt="posts-logo" width="40px">
+                    <span>Posts</span>
+                </div>
+            </div>
+            <div id="tabs">
+                <div>
+                    <button id="my_button" class="btn btn-primary btn-prof btn-tab">My Posts</button>
+                    <button id="friends_button" class="btn btn-primary btn-prof btn-tab">Friends' Posts</button>
+                    <button id="search_button" class="btn btn-primary btn-prof btn-tab">Search</button>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div id="my_posts" class="o-profile" style="padding-top: 1rem;">
+            <h4>My Posts</h4>
+            <div class="posts">
+                <div class="post-box">
+                    <div class="top-part">
+                        <div class="user-info">
+                            <div class="profile-pic"><img src="/static/images/user_profile_pic.png"></div>
+                            <div style="margin-left: 0.5vw; text-align: left;">
+                                <div class="name"><a href="/profile" style="text-decoration: none; color: inherit;">Name</a></div>
+                                <div class="username"><a href="/profile" style="text-decoration: none; color: inherit;">@username</a></div>
+                            </div>
+                        </div>
+                        <div class="post-title">Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commo</div>
+                        <div class="post-timestamp"><div>2023-09-23</div><div>11:25:57</div></div>
+                    </div>
+                    <div>
+                        <div class="post-image">
+                            <img src="/static/images/test.jpg"></img>
+                        </div>
+                    </div>
+                    <div class="contents">
+                        But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born and I will give you a complete account of the system, and expound the actual teachings of the great explorer of the truth, the master-builder of human happiness.
+                        <br>
+                        No one rejects, dislikes, or avoids pleasure itself, because it is pleasure, but because those who do not know how to pursue pleasure rationally encounter consequences that are extremely painful. Nor again is there anyone who loves or pursues or desires to obtain pain of itself, because it is pain, but because occasionally circumstances occur in which toil and pain can pro
+                    </div>
+                    <div class="tags">
+                        <div class="tag">#MyLifeMatters</div>
+                        <div class="tag">#MyLifeMatters2</div>
+                    </div>
+                    <div class="actions">
+                        <div>aaa</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
