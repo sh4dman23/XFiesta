@@ -67,8 +67,8 @@
 }
 
 .action-button {
-    width: 3.25vw;
-    height: 3.25vw;
+    width: 3rem;
+    height: 3rem;
     border: 0.25px solid white;
     border-radius: 50%;
     margin-left: 2.5px;

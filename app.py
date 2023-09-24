@@ -1,16 +1,20 @@
 import os
 
 from cs50 import SQL
-from flask import Flask, redirect, render_template, request, session, jsonify, abort
+from flask import Flask, redirect, render_template, request, session, jsonify, abort, send_file
 from flask_session import Session
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology
 import random
-
 import logging
 
+
+# Logs
 logging.getLogger("cs50").disabled = False
+
+log_file = "app.log"
+logging.basicConfig(filename=log_file, level=logging.INFO)
 
 # Configure cs50 to start using site's database
 db = SQL("sqlite:///xfiesta.db")
@@ -73,10 +77,20 @@ def page_not_found(e):
     return apology("Page Not Found!", 404)
 
 
-# Server hosted images
-@app.route('/path/<path:subpath>')
-def serve_file_in_dir(subpath):
-    return send_from_directory('/server_hosted_files/', subpath)
+# Allow access to server hosted files
+@app.route('/server_hosted_files/<path:directory>/<path:filename>')
+def get_image(directory, filename):
+    # Root directory
+    root_dir = './server_hosted_files'
+
+    # Construct path to image
+    image_path = os.path.join(root_dir, directory, filename)
+
+    if not os.path.exists(image_path):
+        return apology("File Not Found!", 404)
+
+    # Serve image
+    return send_file(image_path)
 
 
 @app.route("/")
@@ -370,15 +384,31 @@ def friends():
 
 
 @app.route("/posts", methods=["GET", "POST"])
+@login_required
 def posts():
     if request.method == "POST":
         ...
     else:
-        return render_template("posts.html")
+        my_posts = db.execute("SELECT * FROM posts WHERE user_id = ? ORDER BY post_time DESC;", session["user_id"])
+        for post in my_posts:
+            tag_list = list()
+            tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
+            for tag in tags:
+                tag_list.append(tag["tag"])
+            post["tags"] = tag_list
+
+            # Set user_post_interaction status - 0 for no interaction, 1 for liked, 2 for disliked
+            interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
+            post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
+
+        user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+
+        return render_template("posts.html", my_posts=my_posts, my_name=user[0]["fullname"], my_username=user[0]["username"])
 
 
 # Allows users to create posts
 @app.route("/createpost", methods=["GET", "POST"])
+@login_required
 def post():
     if request.method == "POST":
         image = request.files["image-upload"]
@@ -427,14 +457,151 @@ def post():
 
             # Everything completed successfully
             db.execute("COMMIT;")
-
         except Exception as e:
             db.execute("ROLLBACK;")
             return apology(f"{e}")
 
-        return redirect("/")
+        return redirect("/posts")
     else:
         return render_template("create_a_post.html", list_of_tags=list_of_interests)
+
+
+# Manage post likes/dislikes
+@app.route("/manage_likes", methods=["GET", "POST"])
+@login_required
+def manage_likes():
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        post_id = request.form.get("post_id")
+        action = request.form.get("action")
+
+        # Verify
+        if not post_id or post_id == "" or not action or action not in ["like", "dislike"]:
+            return jsonify({"result": False}), 400
+
+        # Update
+        try:
+            db.execute("BEGIN TRANSACTION;")
+            status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+
+            # AJAX request from like manager
+            if action == "like":
+                if status:
+                    # Like post
+                    if status[0]["status"] == 0:
+                        db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                    # Remove like status (unlike)
+                    elif status[0]["status"] == 1:
+                        db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                    # Disliked previously, now wants to like => Remove dislike(+1) and then like(+1)
+                    elif status[0]["status"] == 2:
+                        db.execute("UPDATE posts SET likes = likes + 2 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival + 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Status is considered 0 (no interaction) and hence, like post
+                else:
+                    db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                    db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(1, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+            # AJAX request from dislike manager
+            else:
+                if status:
+                    # Dislike post
+                    if status[0]["status"] == 0:
+                        db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 2, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                    # Remove dislike status
+                    elif status[0]["status"] == 2:
+                        db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                    # Liked previously, now wants to dislike => Remove like(-1) and then dislike(-1)
+                    elif status[0]["status"] == 1:
+                        db.execute("UPDATE posts SET likes = likes - 2 WHERE id = ?;", post_id)
+                        db.execute("UPDATE user_post_interactions SET status = 2 WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                        db.execute("UPDATE users SET carnival = carnival - 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Status is considered 0 (no interaction) and hence, dislike post
+                else:
+                    db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                    db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(2, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+            db.execute("COMMIT;")
+            return jsonify({"result": True}), 200
+
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(f"An error occurred: {str(e)}")
+            return jsonify({"result": False}), 400
+    else:
+        abort(404)
+
+
+# Delete posts (via AJAX)
+@app.route("/delete_post", methods=["GET", "POST"])
+@login_required
+def delete_post():
+    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        post_id = request.form.get("post_id")
+        if not post_id or post_id == "":
+            return jsonify({"result": False})
+        user_id = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
+
+        if user_id[0]["user_id"] != session["user_id"]:
+            return jsonify({"result": False})
+
+        try:
+            db.execute("BEGIN TRANSACTION;")
+
+            # Decrease post count
+            db.execute("UPDATE users SET posts = posts - 1 WHERE id = ?;", session["user_id"])
+
+            # Remove carnival points gained from posts
+            info = db.execute("SELECT likes, comments FROM posts WHERE id = ?;", post_id)
+            decrement = int(info[0]["likes"]) * 2 + int(info[0]["comments"]) * 5
+            db.execute("UPDATE users SET carnival = carnival - ? WHERE id = ?;", decrement, session["user_id"])
+
+            # Delete tags
+            db.execute("DELETE FROM post_tags WHERE post_id = ?;", post_id)
+
+            # Delete user-post interaction status
+            db.execute("DELETE FROM user_post_interactions WHERE post_id = ?;", post_id)
+
+            # Delete server hosted file
+            image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
+            if image[0]["imagelocation"]:
+                try:
+                    # Remove image
+                    os.remove(image[0]["imagelocation"])
+                    directory = os.path.dirname(image[0]["imagelocation"])
+
+                    # Remove folder (if empty)
+                    if not os.listdir(directory):
+                        os.removedirs(directory)
+                except OSError:
+                    pass
+
+            # Delete post data
+            db.execute("DELETE FROM posts WHERE id = ?;", post_id)
+            db.execute("COMMIT;")
+            return jsonify({"result": True})
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(f"An error occurred: {str(e)}")
+            return jsonify({"result": False})
+    else:
+        abort(404)
 
 
 # Permanently delete user account and data
@@ -476,10 +643,11 @@ def remove_account():
                             if not os.listdir(directory):
                                 os.removedirs(directory)
                         except OSError:
-                            raise Exception("Error Removing Posts!")
+                            pass
 
-                # Remove all posts by user including tags
+                # Remove all posts by user including tags and interactions
                 db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
+                db.execute("DELETE FROM user_post_interactions WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
                 db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
 
                 # Delete all user interests
@@ -493,6 +661,7 @@ def remove_account():
                 return redirect("/welcome")
             except Exception as e:
                 db.execute("ROLLBACK;")
+                logging.error(f"An error occurred: {str(e)}")
                 return apology(f"Account Deletion Failed! - {e}")
         else:
             return apology("Invalid Submission!")

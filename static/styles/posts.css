@@ -54,7 +54,7 @@
 
 .user-info {
     width: 10%;
-    margin-left: 2rem;
+    margin-left: 1rem;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
     display: flex;
@@ -63,20 +63,26 @@
 }
 
 .profile-pic {
-    width: 37.5px;
-    height: 37.5px;
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.profile-pic img {
+    width: 100%;
+    height: 100%;
 }
 
 .post-title {
     width: 80%;
-    display: flex;
     font-size: 24px;
-    font-weight: 700;
-    justify-content: center;
-    align-items: center;
+    font-weight: 500;
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .post-timestamp {
+    width: 10%;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -97,10 +103,13 @@
 }
 
 .tags {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
     margin-top: 2vh;
-    padding-bottom: 2vh;
+    margin-bottom: 2vh;
     display: flex;
-    justify-content: center;
+    justify-content: left;
     flex-wrap: wrap;
 }
 
@@ -111,6 +120,82 @@
     padding: 5px;
     border: 2px solid transparent;
     border-radius: 10px;
+}
+
+.actions {
+    height: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+    display: flex;
+}
+
+.action-button {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid transparent;
+    border-radius: 10px !important;
+    background-color: white;
+    display: flex;
+    margin-left: 5px;
+    margin-right: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-left {
+    margin-left: 10px;
+    margin-bottom: 10px;
+    width: 50%;
+    display: flex;
+    justify-content: left;
+}
+
+.btn-right {
+    margin-right: 10px;
+    margin-bottom: 10px;
+    width: 50%;
+    display: flex;
+    justify-content: right;
+}
+
+.action-button img {
+    height: 90%;
+    width: auto;
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+.action-button:hover {
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+}
+
+.action-button:active {
+    transform: translateY(2px);
+}
+
+.btn-big img {
+    width: 4rem;
+    height: 4rem;
+}
+
+.like_count {
+    font-size: 1rem;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+#delete_popup {
+    width: 90%;
+    padding: 3rem 2rem;
+    background-color: white;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 @media screen and (max-width: 560px) {
@@ -124,5 +209,12 @@
         height: 2rem !important;
         width: auto !important;
         padding: 0px 0.2rem;
+    }
+    .profile-pic {
+        display: none;
+    }
+    .user-info {
+        width: 7%;
+        margin-left: 4px;
     }
 }

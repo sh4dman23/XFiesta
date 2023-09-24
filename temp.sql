@@ -6,6 +6,7 @@ CREATE TABLE users (
     about_me TEXT,
     friends INTEGER DEFAULT 0 NOT NULL,
     posts INTEGER DEFAULT 0 NOT NULL,
+    carnival INTEGER DEFAULT 0 NOT NULL,
     creation_time TIMESTAMP NOT NULL,
     PRIMARY KEY(id)
 );
@@ -55,4 +56,15 @@ CREATE TABLE post_tags (
     PRIMARY KEY(id),
     FOREIGN KEY(post_id) REFERENCES posts(id),
     FOREIGN KEY(tag_id) REFERENCES interests(id)
+);
+
+CREATE TABLE user_post_interactions (
+    id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    status INTEGER CHECK (status IN (0, 1, 2)) DEFAULT 0,
+    timestamp INTEGER NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY(post_id) REFERENCES posts(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
 );
