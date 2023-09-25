@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/scripts/post.css" rel="stylesheet">
+    <script src="/static/scripts/editpost.js"></script>
+{% endblock %}
+
+{% block title %}
+    Edit Post
+{% endblock %}
+
+{% block main %}
+    <div class="container-main o-profile" id="edit_post">
+        <h3>Edit Post</h3>
+        <form id="form" action="/edit_post" method="post" enctype="multipart/form-data">
+            <img id="preview" src="{% if post['imagelocation'] %} {{ post['imagelocation'] }} {% else %}{% endif %}">
+            <div class="remove_preview_button">
+                <button id="remove_preview" style="{% if post['imagelocation'] %} display: block; {% else %} display: none; {% endif %}" class="btn btn-primary" type="button">Remove Image</button>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Change Image</label>
+                <input id="change_status" name="change" type="hidden" value="unchanged">
+                <input name="image-upload" id="image-input" class="form-control post-image" type="file" accept="image/png, image/jpeg">
+                <div id="warning0" style="color: red;"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Edit Title</label>
+                <input autocomplete="off" class="form-control mx-auto w-auto" required id="title" name="title" placeholder="Title (required)" type="text" minlength="5" value="{{ post['title'] }}" maxlength="70">
+                <div id="warning1" style="color: red"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Edit Description</label>
+                <textarea autocomplete="off" class="form-control mx-auto w-auto" required id="contents" name="contents" placeholder="Description (required)" type="text" rows="5" maxlength="640">{{ post["contents"] }}</textarea>
+                <div id="warning2" style="color: red"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Edit Tags</label>
+                <input autocomplete="off" class="form-control mx-auto w-auto" id="tagInput" value="" placeholder="Tags e.g. #tag1 #tag2 (required)" type="text" name="tagInput">
+                <div id="warning3" style="color: red;"></div>
+                <div id="tagList">
+                    {% for tag in post["tags"] %}
+                        <label class="form-check-label">
+                            <input type="checkbox" name="tag" checked class="form-check-input" value="{{ tag }}">{{ tag }}</input>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <button id="submit" class="btn btn-primary btn-prof" type="submit">Post</button>
+            <a href="/posts"><button id="cancel" class="btn btn-primary btn-prof" type="button">Cancel</button></a>
+        </form>
+    </div>
+    <script>
+        let list = {{ list_of_tags | tojson | safe }};
+        let id = {{ post["id"] }}
+    </script>
+{% endblock %}

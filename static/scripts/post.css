@@ -23,6 +23,13 @@ label {
     height: auto !important;
 }
 
+.remove_preview_button {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
 #tagList {
     display: flex;
     margin-top: 20px;

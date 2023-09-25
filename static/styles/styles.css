@@ -112,7 +112,6 @@ h1 {
     height: 125px;
     border: 2px solid white;
     border-radius: 50%;
-    overflow: hidden;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     background-color: #f0f0f0;
 }
@@ -182,6 +181,10 @@ textarea {
         font-weight: 700 !important;
         pointer-events: all;
         padding-left: 1vw;
+    }
+
+    .o-profile {
+        width: 100%;
     }
 
     input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {

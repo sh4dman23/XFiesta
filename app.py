@@ -383,33 +383,82 @@ def friends():
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
 
 
-@app.route("/posts", methods=["GET", "POST"])
+@app.route("/post")
+@login_required
+def post():
+    post_id = request.args.get("id")
+    post = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE id = ?;", post_id)
+
+    if not post_id or not post:
+        return redirect("/posts")
+
+    # Only need the first dictionary in the single element list
+    post = post[0]
+
+    # Add tags
+    tag_list = list()
+    tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON interests.id = post_tags.tag_id WHERE post_tags.post_id = ?;", post_id)
+    for tag in tags:
+        tag_list.append(tag["tag"])
+    post["tags"] = tag_list
+
+    # Check post ownership
+    post["owner"] = 1 if post["user_id"] == session["user_id"] else 0
+
+    # Get post owner info
+    user = db.execute("SELECT fullname, username FROM users WHERE id = (SELECT user_id FROM posts WHERE id = ?)", post_id)
+    post["fullname"] = user[0]["fullname"]
+    post["username"] = user[0]["username"]
+
+    # Get post interaction status
+    status = db.execute("SELECT status FROM user_post_interactions WHERE user_id = ? AND post_id = ?;", session["user_id"], post_id)
+    post["status"] = status[0]["status"] if status else 0
+
+    return render_template("post_page.html", post=post)
+
+
+@app.route("/posts")
 @login_required
 def posts():
-    if request.method == "POST":
-        ...
-    else:
-        my_posts = db.execute("SELECT * FROM posts WHERE user_id = ? ORDER BY post_time DESC;", session["user_id"])
-        for post in my_posts:
-            tag_list = list()
-            tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
-            for tag in tags:
-                tag_list.append(tag["tag"])
-            post["tags"] = tag_list
+    # Get user's posts
+    my_posts = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE user_id = ? ORDER BY post_time DESC;", session["user_id"])
+    for post in my_posts:
+        tag_list = list()
+        tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
+        for tag in tags:
+            tag_list.append(tag["tag"])
+        post["tags"] = tag_list
 
-            # Set user_post_interaction status - 0 for no interaction, 1 for liked, 2 for disliked
-            interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
-            post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
+        # Set user_post_interaction status - 0 for no interaction, 1 for liked, 2 for disliked
+        interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
+        post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
 
-        user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+    user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
 
-        return render_template("posts.html", my_posts=my_posts, my_name=user[0]["fullname"], my_username=user[0]["username"])
+    # Get user's friends' posts
+    friend_posts = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE user_id IN (SELECT user_id2 FROM friends WHERE user_id1 = ?) ORDER BY post_time DESC;", session["user_id"])
+    for post in friend_posts:
+        info = db.execute("SELECT fullname, username FROM users WHERE id = ?;", post["user_id"])
+        post["fullname"] = info[0]["fullname"]
+        post["username"] = info[0]["username"]
+
+        tag_list2 = list()
+        tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
+        for tag in tags:
+            tag_list2.append(tag["tag"])
+        post["tags"] = tag_list2
+
+        # Set user_post_interaction status - 0 for no interaction, 1 for liked, 2 for disliked
+        interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
+        post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
+
+    return render_template("posts.html", my_posts=my_posts, my_name=user[0]["fullname"], my_username=user[0]["username"], friend_posts=friend_posts)
 
 
 # Allows users to create posts
 @app.route("/createpost", methods=["GET", "POST"])
 @login_required
-def post():
+def createpost():
     if request.method == "POST":
         image = request.files["image-upload"]
         title = request.form.get("title")
@@ -435,7 +484,6 @@ def post():
 
                 # Sanitize and validate input
                 image.filename = secure_filename(image.filename).lower()
-                print(image.filename)
                 if not image.filename.endswith(".png") and not image.filename.endswith(".jfif") and not image.filename.endswith(".pjp") and not image.filename.endswith(".jpg") and not image.filename.endswith(".jpeg") and not image.filename.endswith(".pjpeg"):
                     raise Exception("Invalid Image Format!")
 
@@ -548,6 +596,129 @@ def manage_likes():
         abort(404)
 
 
+# Edit posts
+@app.route("/edit_post", methods=["GET", "POST"])
+def edit_post():
+    if request.method == "POST":
+        post_id = request.form.get("post_id")
+        title = request.form.get("title")
+        contents = request.form.get("contents")
+        tags = request.form.getlist("tag")
+        image = request.files["image-upload"]
+        change = request.form.get("change")
+
+        if not post_id or not post_id.isdigit or not title or not contents or len(title) > 70 or len(contents) > 640 or not tags or change not in ["unchanged", "changed"]:
+            return apology("Invalid Submission!")
+
+        # If an image has been uploaded
+        if image and image != "":
+            image.filename = secure_filename(image.filename)
+
+            # Validate
+            if not image.filename.endswith(".png") and not image.filename.endswith(".jfif") and not image.filename.endswith(".pjp") and not image.filename.endswith(".jpg") and not image.filename.endswith(".jpeg") and not image.filename.endswith(".pjpeg"):
+                return apology("Invalid Image Format!")
+
+            image_uploaded = True
+        else:
+            image_uploaded = False
+
+        # Check if user is the owner of post
+        check = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
+        if len(check) != 1 or check[0]["user_id"] != session["user_id"]:
+            return apology("Unauthorized Access!", 401)
+
+        prev_image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
+
+        # If previously a server hosted image existed
+        if prev_image[0]["imagelocation"]:
+            if change == "changed":
+                prev_img_dir = os.path.dirname(prev_image[0]["imagelocation"])
+
+                # Delete previous image (if found on server)
+                try:
+                    os.remove(prev_image[0]["imagelocation"])
+                except OSError:
+                    pass
+
+                if image_uploaded:
+                    # Add new image to previous directory
+                    save_location = os.path.join(prev_img_dir, image.filename)
+                    image.save(save_location)
+                    imagelocation = save_location
+                else:
+                    # Remove image directory (if found)
+                    if os.path.exists(prev_img_dir) and not os.listdir(prev_img_dir):
+                        try:
+                            os.removedirs(prev_img_dir)
+                        except OSError:
+                            pass
+                    imagelocation = None
+
+            # Don't need to do anything if status is unchanged
+
+        else:
+            if image_uploaded:
+                # Create new directory to save image
+                new_dir = os.path.join("server_hosted_files", "posts", post_id)
+
+                if not os.path.exists(new_dir):
+                    os.makedirs(new_dir)
+                save_location = os.path.join(new_dir, str(image.filename))
+                image.save(save_location)
+                imagelocation = save_location
+            else:
+                imagelocation = None
+
+        # Update database
+        try:
+            db.execute("BEGIN TRANSACTION;")
+            db.execute("UPDATE posts SET title = ?, contents = ? WHERE id = ?;", title, contents, post_id)
+
+            # Update tags
+            db.execute("DELETE FROM post_tags WHERE post_id = ?;", post_id)
+            for tag in tags:
+                if tag in list_of_interests:
+                    tagId = db.execute("SELECT id FROM interests WHERE interest = ?;", tag)
+                    db.execute("INSERT INTO post_tags(tag_id, post_id) VALUES (?, ?);", tagId[0]["id"], post_id)
+
+            # Update image
+            if image_uploaded:
+                db.execute("UPDATE posts SET imagelocation = ? WHERE id = ?;", imagelocation, post_id)
+            elif change == "changed" and prev_image[0]["imagelocation"]:
+                db.execute("UPDATE posts SET imagelocation = NULL WHERE id = ?;", post_id)
+
+            db.execute("COMMIT;")
+
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(f"An error occured: {e}")
+            return apology(f"Your request could not be handled! - {e}")
+
+        return redirect("/posts")
+
+    else:
+        # Get id of post
+        post_id = request.args.get("post_id")
+
+        # If not found, redirect to posts
+        if not post_id or post_id == "":
+            print("a")
+            return redirect("/posts")
+
+        post = db.execute("SELECT * FROM posts WHERE id = ?;", post_id)
+        tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post_id)
+        if not post or not tags or post[0]["user_id"] != session["user_id"]:
+            print("b")
+            return redirect("/posts")
+
+        tag_list = list()
+        for tag in tags:
+            tag_list.append(tag["tag"])
+
+        post[0]["tags"] = tag_list
+
+        return render_template("edit_post.html", post=post[0], list_of_tags=list_of_interests)
+
 # Delete posts (via AJAX)
 @app.route("/delete_post", methods=["GET", "POST"])
 @login_required
@@ -587,7 +758,7 @@ def delete_post():
                     directory = os.path.dirname(image[0]["imagelocation"])
 
                     # Remove folder (if empty)
-                    if not os.listdir(directory):
+                    if os.path.exists(directory) and not os.listdir(directory):
                         os.removedirs(directory)
                 except OSError:
                     pass
@@ -635,12 +806,12 @@ def remove_account():
                 for image in images:
                     if image["imagelocation"]:
                         try:
-                            # Remove image
+                            # Remove image (if located on server on server)
                             os.remove(image["imagelocation"])
                             directory = os.path.dirname(image["imagelocation"])
 
                             # Remove folder (if empty)
-                            if not os.listdir(directory):
+                            if os.path.exists(directory) and not os.listdir(directory):
                                 os.removedirs(directory)
                         except OSError:
                             pass

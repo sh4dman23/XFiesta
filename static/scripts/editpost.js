@@ -1,4 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Custom Functions
     function HTMLDecode(html) {
         var txt = document.createElement("textarea");
         txt.innerHTML = html;
@@ -20,13 +22,26 @@ document.addEventListener('DOMContentLoaded', function() {
         tagList.appendChild(label);
     }
 
+    const post_id = id;
+
     const image = document.getElementById('image-input');
     const preview = document.getElementById('preview');
+    const change = document.getElementById('change_status');
+    const remove_preview = document.getElementById('remove_preview');
     const title = document.getElementById('title');
     const contents = document.getElementById('contents');
     const tagInput = document.getElementById("tagInput");
     const tagList = document.getElementById("tagList");
     const submit_button = document.getElementById("submit");
+
+
+    // Remove current image button
+    remove_preview.onclick = function() {
+        document.getElementById('preview').src = '';
+        remove_preview.style.display = 'none';
+        image.value = null;
+        change.value = "changed";
+    };
 
     title.addEventListener('keyup', function() {
         if (title.value.length == 70) {
@@ -88,7 +103,36 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    submit.onclick = function() {
+    // Add preview if valid image is uploaded
+    image.onchange = function() {
+        if (!image.value || image.value == "") {
+            preview.src = "";
+            image.value = null;
+            remove_preview.style.display = 'none';
+        }
+        else if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
+            var reader = new FileReader();
+            reader.onload = function() {
+                remove_preview.style.display = 'block';
+                preview.src = reader.result;
+            };
+            reader.readAsDataURL(image.files[0]);
+        }
+        else {
+            preview.src = "";
+            remove_preview.style.display = 'none';
+            image.value = null;
+            document.getElementById('warning0').innerHTML = "Supported image formats are PNG/JPG!";
+            setTimeout(function() {
+                document.getElementById('warning0').innerHTML = "";
+            }, 3000);
+        }
+
+        change.value = "changed";
+    };
+
+    // Check tags
+    submit_button.onclick = function() {
         if (tagList.innerHTML == "") {
             document.getElementById('warning3').innerHTML = "Include at least one tag with your post!";
             return false;
@@ -111,26 +155,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
             return false;
         }
-    };
 
-    image.onchange = function() {
-        if (!image.value || image.value == "") {
-            preview.src = "";
-        }
-        else if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
-            var reader = new FileReader();
-            reader.onload = function() {
-                preview.src = reader.result;
-            };
-            reader.readAsDataURL(image.files[0]);
-        }
-        else {
-            image.value = "";
-            preview.src = "";
-            document.getElementById('warning0').innerHTML = "Supported image formats are PNG/JPG!";
-            setTimeout(function() {
-                document.getElementById('warning0').innerHTML = "";
-            }, 3000);
-        }
+        console.log(post_id);
+
+        // Send post_id to server
+        const postid_input = document.createElement('input');
+        postid_input.type = 'hidden';
+        postid_input.name = 'post_id';
+        postid_input.value = post_id;
+
+        document.getElementById('form').appendChild(postid_input);
+        return true;
     };
 });
