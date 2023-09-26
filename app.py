@@ -8,6 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology
 import random
 import logging
+from markupsafe import Markup, escape
 
 
 # Logs
@@ -388,11 +389,8 @@ def friends():
 def post():
     post_id = request.args.get("id")
     post = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE id = ?;", post_id)
-
     if not post_id or not post:
         return redirect("/posts")
-
-    # Only need the first dictionary in the single element list
     post = post[0]
 
     # Add tags
@@ -402,10 +400,8 @@ def post():
         tag_list.append(tag["tag"])
     post["tags"] = tag_list
 
-    # Check post ownership
-    post["owner"] = 1 if post["user_id"] == session["user_id"] else 0
-
-    # Get post owner info
+    # Check post ownership and get post owner info
+    post["owner"] = True if post["user_id"] == session["user_id"] else False
     user = db.execute("SELECT fullname, username FROM users WHERE id = (SELECT user_id FROM posts WHERE id = ?)", post_id)
     post["fullname"] = user[0]["fullname"]
     post["username"] = user[0]["username"]
@@ -414,7 +410,22 @@ def post():
     status = db.execute("SELECT status FROM user_post_interactions WHERE user_id = ? AND post_id = ?;", session["user_id"], post_id)
     post["status"] = status[0]["status"] if status else 0
 
-    return render_template("post_page.html", post=post)
+    # Get all comments for post
+    comments = db.execute("SELECT *, strftime('%d-%m-%Y', comment_time) AS date, strftime('%H:%M', comment_time) AS time FROM comments WHERE post_id = ? ORDER BY comment_time DESC;", post_id)
+
+    if comments:
+        for comment in comments:
+            comment["owner"] = True if comment["user_id"] == session["user_id"] else False
+
+            user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", comment["user_id"])
+            comment["fullname"] = user[0]["fullname"]
+            comment["username"] = user[0]["username"]
+
+            status = db.execute("SELECT status FROM user_comment_interactions WHERE comment_id = ? AND user_id = ?;", comment["id"], session["user_id"])
+            comment["status"] = status[0]["status"] if status else 0
+
+
+    return render_template("post_page.html", post=post, comments=comments)
 
 
 @app.route("/posts")
@@ -474,10 +485,10 @@ def createpost():
             db.execute("BEGIN TRANSACTION;")
 
             # Add post to database
-            post_id = db.execute("INSERT INTO posts(user_id, title, contents, post_time) VALUES(?, ?, ?, CURRENT_TIMESTAMP);" , session["user_id"], title, contents)
-
+            post_id = db.execute("INSERT INTO posts(user_id, title, contents, likes, post_time) VALUES(?, ?, ?, 1, CURRENT_TIMESTAMP);" , session["user_id"], title, contents)
+            db.execute("INSERT INTO user_post_interactions(post_id, user_id, status, timestamp) VALUES(?, ?, 1, CURRENT_TIMESTAMP);", post_id, session["user_id"])
             # Increase post count for user
-            db.execute("UPDATE users SET posts = posts + 1 WHERE id = ?;", session["user_id"])
+            db.execute("UPDATE users SET posts = posts + 1, carnival = carnival + 2 WHERE id = ?;", session["user_id"])
 
             # If image was uploaded
             if image and image != "":
@@ -624,7 +635,9 @@ def edit_post():
 
         # Check if user is the owner of post
         check = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
-        if len(check) != 1 or check[0]["user_id"] != session["user_id"]:
+        if len(check) != 1:
+            return apology("Post Not Found!", 404)
+        if check[0]["user_id"] != session["user_id"]:
             return apology("Unauthorized Access!", 401)
 
         prev_image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
@@ -735,19 +748,19 @@ def delete_post():
         try:
             db.execute("BEGIN TRANSACTION;")
 
-            # Decrease post count
-            db.execute("UPDATE users SET posts = posts - 1 WHERE id = ?;", session["user_id"])
-
-            # Remove carnival points gained from posts
-            info = db.execute("SELECT likes, comments FROM posts WHERE id = ?;", post_id)
-            decrement = int(info[0]["likes"]) * 2 + int(info[0]["comments"]) * 5
-            db.execute("UPDATE users SET carnival = carnival - ? WHERE id = ?;", decrement, session["user_id"])
+            # Decrease post count and remove points gained by user's own like. Interactions by others remain unchanged
+            comment_count = db.execute("SELECT COUNT(id) AS count FROM comments WHERE post_id = ?;", post_id)
+            db.execute("UPDATE users SET posts = posts - 1, carnival = carnival - (2 + ?) WHERE id = ?;", comment_count[0]["count"], session["user_id"])
 
             # Delete tags
             db.execute("DELETE FROM post_tags WHERE post_id = ?;", post_id)
 
             # Delete user-post interaction status
             db.execute("DELETE FROM user_post_interactions WHERE post_id = ?;", post_id)
+
+            # Delete all user-comment interactions and comments
+            db.execute("DELETE FROM user_comment_interactions WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?);", post_id)
+            db.execute("DELETE FROM comments WHERE post_id = ?;", post_id)
 
             # Delete server hosted file
             image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
@@ -773,6 +786,153 @@ def delete_post():
             return jsonify({"result": False})
     else:
         abort(404)
+
+
+# Manage comment submissions
+@app.route("/api/add_comment", methods=["POST"])
+@login_required
+def add_comment():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+    data = request.get_json()
+    print(data)
+
+    if not data or not data["post_id"] or not data["comment_contents"] or len(data["comment_contents"]) > 640:
+        return jsonify({"result": False}), 400
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], escape(data["comment_contents"]))
+        db.execute("INSERT INTO user_comment_interactions(comment_id, user_id, status) VALUES(?, ?, 1);", comment_id, session["user_id"])
+        info = db.execute("SELECT strftime('%d-%m-%Y', comment_time) AS date, strftime('%H:%M', comment_time) AS time FROM comments WHERE id = ?;", comment_id)
+        db.execute("UPDATE posts SET comments = comments + 1 WHERE id = ?;", data["post_id"])
+        db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = ?;", session["user_id"])
+        db.execute("COMMIT;")
+    except Exception as e:
+        db.execute("ROLLBACK")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
+
+    user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+
+    # Give back sanitized comment
+    comment = db.execute("SELECT contents FROM comments WHERE id = ?;", comment_id)
+    response = {
+        "result": True,
+        "comment_id": comment_id,
+        "comment_contents": comment[0]["contents"],
+        "fullname": user[0]["fullname"],
+        "username": user[0]["username"],
+        "date": info[0]["date"],
+        "time": info[0]["time"],
+    }
+    return jsonify(response)
+
+
+# Manage comment likes/dislikes
+@app.route("/api/manage_comment_likes", methods=["POST"])
+@login_required
+def manage_comment_likes():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+    data = request.get_json()
+    if not data or data["action"] not in ["like", "dislike"]:
+        return jsonify({"result": False})
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Get interaction status
+        status = db.execute("SELECT status FROM user_comment_interactions WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+
+        if data["action"] == "like":
+            # Add like(+1)
+            if not status or status[0]["status"] == 0:
+                db.execute("UPDATE comments SET likes = likes + 1 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+
+                if not status:
+                    db.execute("INSERT INTO user_comment_interactions(user_id, comment_id, status) VALUES(?, ?, 1);", session["user_id"], data["comment_id"])
+                else:
+                    db.execute("UPDATE user_comment_interactions SET status = 1 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+            # Remove like(-1)
+            elif status[0]["status"] == 1:
+                db.execute("UPDATE comments SET likes = likes - 1 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival - 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+                db.execute("UPDATE user_comment_interactions SET status = 0 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+            # Remove dislike(+1) and then add like(+1) => +2
+            else:
+                db.execute("UPDATE comments SET likes = likes + 2 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+                db.execute("UPDATE user_comment_interactions SET status = 1 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+        else:
+            # Add dislike
+            if not status or status[0]["status"] == 0:
+                db.execute("UPDATE comments SET likes = likes - 1 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival - 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+                if not status:
+                    db.execute("INSERT INTO user_comment_interactions(user_id, comment_id, status) VALUES(?, ?, 2);", session["user_id"], data["comment_id"])
+                else:
+                    db.execute("UPDATE user_comment_interactions SET status = 2 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+            # Remove dislike(+1)
+            elif status[0]["status"] == 2:
+                db.execute("UPDATE comments SET likes = likes + 1 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+                db.execute("UPDATE user_comment_interactions SET status = 0 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+            # Remove like(-1) and then add dislike(-1) => -2
+            else:
+                db.execute("UPDATE comments SET likes = likes - 2 WHERE id = ?;", data["comment_id"])
+                db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
+                db.execute("UPDATE user_comment_interactions SET status = 2 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+
+        new_status = db.execute("SELECT status FROM user_comment_interactions WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
+        like_count = db.execute("SELECT likes FROM comments WHERE id = ?;", data["comment_id"])
+        db.execute("COMMIT;")
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        print(f"{e}")
+        print(data)
+        return jsonify({"result": False})
+
+    response = {
+            "result": True,
+            "comment_status": new_status[0]["status"],
+            "comment_like_count": like_count[0]["likes"],
+        }
+    return jsonify(response)
+
+
+# Delete comment
+@app.route("/api/delete_comment", methods=["POST"])
+@login_required
+def delete_comment():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+
+    comment = request.get_json()
+    if not comment:
+        return jsonify({"result": False}), 400
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        info = db.execute("SELECT post_id, user_id, likes FROM comments WHERE id = ?;", comment["comment_id"])
+
+        if info[0]["user_id"] != session["user_id"]:
+            raise Exception("Unauthorized Access!")
+
+        db.execute("UPDATE posts SET comments = comments - 1 WHERE id = ?;", info[0]["post_id"])
+
+        # Remove points gained by user's own like. Interactions by others remain unchanged
+        db.execute("UPDATE users SET carnival = carnival - 1 WHERE id = ?;", info[0]["user_id"])
+
+        db.execute("DELETE FROM user_comment_interactions WHERE comment_id = ?;", comment["comment_id"])
+        db.execute("DELETE FROM comments WHERE id = ?;", comment["comment_id"])
+        db.execute("COMMIT;")
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
+
+    return jsonify({"result": True}), 200
 
 
 # Permanently delete user account and data
@@ -816,9 +976,13 @@ def remove_account():
                         except OSError:
                             pass
 
-                # Remove all posts by user including tags and interactions
+                # Remove all posts by user including tags, interactions, comments and comment interactions
                 db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
-                db.execute("DELETE FROM user_post_interactions WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
+                db.execute("DELETE FROM user_post_interactions WHERE user_id = ?;", session["user_id"])
+
+                db.execute("DELETE FROM user_comment_interactions WHERE user_id = ?;", session["user_id"])
+                db.execute("DELETE FROM comments WHERE user_id = ?;", session["user_id"])
+
                 db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
 
                 # Delete all user interests
@@ -838,7 +1002,3 @@ def remove_account():
             return apology("Invalid Submission!")
     else:
         return render_template("remove_account.html")
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', threaded=True)

@@ -176,6 +176,7 @@
     object-fit: cover;
     -webkit-user-drag: none;
     user-select: none;
+    pointer-events: none;
 }
 
 .action-button:hover {

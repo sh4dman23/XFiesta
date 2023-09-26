@@ -73,11 +73,22 @@ CREATE TABLE comments (
     id INTEGER NOT NULL,
     post_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
-    comment TEXT NOT NULL,
+    contents TEXT NOT NULL,
     likes INTEGER NOT NULL DEFAULT 0,
     replies INTEGER NOT NULL DEFAULT 0,
     comment_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(id),
     FOREIGN KEY(post_id) REFERENCES posts(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+
+CREATE TABLE user_comment_interactions (
+    id INTEGER NOT NULL,
+    comment_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    status INTEGER CHECK (status IN (0, 1, 2)) DEFAULT 0,
+    timestamp INTEGER NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    FOREIGN KEY(comment_id) REFERENCES comments(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );

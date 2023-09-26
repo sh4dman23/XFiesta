@@ -24,7 +24,7 @@
                 {{ user["friends"] }}
             </div>
             <div class="stat">
-                Carnivals
+                Carnival Points
                 <br>
                 {{ user["carnival"] }}
             </div>
@@ -37,7 +37,7 @@
         <div class="about-me">
             <div class="p-header">About Me</div>
             {% if user["about_me"] %}
-                {{ user["about_me"] }}
+                <p style="white-space: pre-line">{{ user["about_me"] }}</p>
             {% else %}
                 Hello there! It seems like I haven't shared much about myself yet.
                 <br>

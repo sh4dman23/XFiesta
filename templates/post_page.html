@@ -1,7 +1,9 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
+    <script src="/static/scripts/post_page.js"></script>
     <link rel="stylesheet" href="/static/styles/posts.css">
+    <link rel="stylesheet" href="/static/styles/post_page.css">
 {% endblock %}
 
 {% block title %}
@@ -34,7 +36,7 @@
                     </div>
                 </div>
                 <div class="contents">
-                    {{ post["contents"] }}
+                    <p style="white-space: pre-line">{{ post["contents"] }}</p>
                 </div>
                 <div class="tags">
                     {% for tag in post["tags"] %}
@@ -64,7 +66,7 @@
                     </div>
                     <div id="warning" style="width: 40%; font-size: medium;"></div>
                     <div class="btn-right">
-                        {% if post["owner"] == 1 %}
+                        {% if post["owner"] == True %}
                             <a href="/edit_post?post_id={{ post['id'] }}"><button  id="edit_button" name="edit_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
                             <button id="delete_button" name="delete_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/delete.png"> </button>
                         {% endif %}
@@ -81,197 +83,94 @@
                     <button class="btn btn-primary btn-prof" type="button" id="delete_no" value="no">No</button>
                 </form>
             </div>
+
+            <!--Comment Section-->
+            <div id="comments" class="comments">
+                <h4>Comments</h4>
+                <br>
+
+                <!--Add comment section-->
+                <div class="add-comment">
+                    <label class="add-a-comment">Add A Comment</label>
+                    <textarea id="new_comment_content" name="new_comment_content" class="form-control comment-box" min="1" max="640" placeholder="Write your comment here..." rows="4"></textarea>
+                    <div>
+                        <div id="comment_warning" style="text-align: center; font-size: larger; color: red;">
+
+                        </div>
+                        <div class="comment-post">
+                            <button id="comment_post_button" class="btn btn-primary btn-prof">Post</button>
+                        </div>
+                    </div>
+                </div>
+
+                <br>
+                <!--User comments sections-->
+                <div id="user_comment_area">
+                    {% for comment in comments %}
+                        <div id="{{ comment['id'] }}" class="comment" status="{{ comment['status'] }}">
+                            <div class="top-part">
+                                <div class="user-info" style="margin-left: 0%;">
+                                    <a href="/profile?username={{ comment['username'] }}"><div class="profile-pic-comment"><img src="/static/images/user_profile_pic.png"></div></a>
+                                    <div class="names">
+                                        <a href="/profile?username={{ comment['username'] }}"><div class="name">{{ comment["fullname"] }}</div></a>
+                                        <a href="/profile?username={{ comment['username'] }}"><div class="username">@{{ comment["username"] }}</div></a>
+                                    </div>
+                                </div>
+                                <div class="post-timestamp ts-right">
+                                    <div>{{ comment["date"] }}</div>
+                                    <div>{{ comment["time"] }}</div>
+                                </div>
+                            </div>
+                            <div class="comment-content">
+                                <p style="white-space: pre-line">{{ comment["contents"] }}</p>
+                            </div>
+                            <div class="actions" style="margin-top: 0.5rem;">
+                                <div class="btn-left" style="margin-left: 0%;">
+                                    <button name="like_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                        {% if comment["status"] == 1 %}
+                                            <img src="/static/images/like.png">
+                                        {% else %}
+                                            <img src="/static/images/like-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                    <div class="comment-like-count">{{ comment["likes"] }}</div>
+                                    <button name="dislike_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                        {% if comment["status"] == 2 %}
+                                            <img src="/static/images/dislike.png">
+                                        {% else %}
+                                            <img src="/static/images/dislike-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                </div>
+                                <div name="warning" class="warning"></div>
+                                <div class="btn-right">
+                                    {% if comment['owner'] %}
+                                        <button name="delete_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                            <img src="/static/images/delete.png" class="btn-small">
+                                        </button>
+                                        <button name="confirm_deletion" style="display: none;" class="comment-button" type="button">
+                                            <img src="/static/images/Tick-logo.png" class="btn-small">
+                                        </button>
+                                        <button name="cancel_deletion" style="display: none;" class="comment-button" type="button">
+                                            <img src="/static/images/cross-logo.png" class="btn-small">
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        {% if post["owner"] %}
+        {% if post["owner"] == True %}
             owner = true;
         {% else %}
             owner = null;
         {% endif %}
 
         const comments = {{ post['comments'] }};
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const comment_count = comments;
-
-            const post_id = document.getElementById('post_box').getAttribute('post_id');
-            let status = document.getElementById('post_box').getAttribute('interaction_status');
-
-            const like_button = document.getElementById('like_button');
-            const dislike_button = document.getElementById('dislike_button');
-            const share_button = document.getElementById('share_button');
-
-            const popup = document.getElementById('delete_popup');
-
-            if (owner) {
-                const edit_button = document.getElementById('edit_button');
-                const delete_button = document.getElementById('delete_button');
-            }
-
-            // Manage like button
-            like_button.onclick = async function() {
-                // Disable button for a short period
-                like_button.disabled = true;
-
-                var like_count = document.getElementById('post_box').querySelector('#like_count');
-                if (!like_count || post_id != like_button.value) {
-                    window.location.reload();
-                }
-
-                var aj = new XMLHttpRequest();
-                aj.onreadystatechange = async function() {
-                    if (aj.readyState == 4 && aj.status == 200) {
-                        var data = JSON.parse(aj.responseText);
-
-                        if (data.result) {
-                            var button_image = like_button.querySelector('img');
-
-                            // Manages active dislike button of a post when like button is clicked
-                            document.getElementById('post_box').querySelector('[name="dislike_button"]').querySelector('img').src = "/static/images/dislike-uncolored.png";
-
-                            if (status == 1) {
-                                // Unliked
-                                button_image.src = "/static/images/like-uncolored.png";
-                                like_count.innerHTML = parseInt(like_count.innerHTML) - 1;
-                                status = 0;
-                            } else {
-                                // Liked
-                                button_image.src = "/static/images/like.png";
-
-                                if (status == 0) {
-                                    like_count.innerHTML = parseInt(like_count.innerHTML) + 1;
-                                } else {
-                                    like_count.innerHTML = parseInt(like_count.innerHTML) + 2;
-                                }
-
-                                status = 1;
-                            }
-
-                            // Update post interaction status
-                            document.getElementById('post_box').setAttribute('interaction_status', status);
-
-                            // Enable button after 1500 ms
-                            setTimeout(function() {
-                                like_button.disabled = false;
-                            }, 1500);
-                        }
-                    }
-                };
-
-                aj.open("POST", "/manage_likes", true);
-                aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-                aj.send("post_id=" + post_id + "&action=" + "like");
-            };
-
-            // Manage dislike button
-            dislike_button.onclick = async function() {
-                // Disable button for a short period
-                dislike_button.disabled = true;
-
-                var like_count = document.getElementById('post_box').querySelector('#like_count');
-
-                if (!like_count || post_id != dislike_button.value) {
-                    window.location.reload();
-                }
-
-                var aj = new XMLHttpRequest();
-                aj.onreadystatechange = async function() {
-                    if (aj.readyState == 4 && aj.status == 200) {
-                        var data = JSON.parse(aj.responseText);
-
-                        if (data.result) {
-                            var button_image = dislike_button.querySelector('img');
-
-                            // Manages active like button of a post when dislike button is clicked
-                            document.getElementById('post_box').querySelector('[name="like_button"]').querySelector('img').src = "/static/images/like-uncolored.png";
-
-                            if (status == 2) {
-                                // Removed Dislike
-                                button_image.src = "/static/images/dislike-uncolored.png";
-                                like_count.innerHTML = parseInt(like_count.innerHTML) + 1;
-                                status = 0;
-                            } else {
-                                // Disliked
-                                button_image.src = "/static/images/dislike.png";
-
-                                if (status == 0) {
-                                    like_count.innerHTML = parseInt(like_count.innerHTML) - 1;
-                                } else {
-                                    like_count.innerHTML = parseInt(like_count.innerHTML) - 2;
-                                }
-
-                                status = 2;
-                            }
-
-                            // Update post interaction status
-                            document.getElementById('post_box').setAttribute('interaction_status', status);
-
-                            // Enable button after 1500 ms
-                            setTimeout(function() {
-                                dislike_button.disabled = false;
-                            }, 1500);
-                        }
-                    }
-                };
-
-                aj.open("POST", "/manage_likes", true);
-                aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-                aj.send("post_id=" + post_id + "&action=" + "dislike");
-            };
-
-            // Share button
-            share_button.onclick = function() {
-                event.preventDefault();
-                navigator.clipboard.writeText(window.location.href).then(function() {
-                    warning.style.color = "green";
-                    warning.innerHTML = "Post link copied to clipboard!";
-                }, function(err) {
-                    warning.style.color = "red";
-                    warning.innerHTML = "Could not copy link to clipboard!";
-                });
-                setTimeout(function() {
-                    warning.innerHTML = "";
-                }, 1500);
-            }
-
-            // Manage post deletion
-            if (owner) {
-                delete_button.onclick = function() {
-                    document.getElementById('popup_title').innerHTML = document.getElementById('post_box').querySelector('.post-title').innerHTML;
-                    document.getElementById('popup_likes').innerHTML = document.getElementById('post_box').querySelector('#like_count').innerHTML;
-                    document.getElementById('popup_comments').innerHTML = comment_count;
-
-                    popup.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-
-                    document.getElementById('delete_yes').onclick = async function() {
-                        var aj = new XMLHttpRequest();
-
-                        aj.onreadystatechange = async function() {
-                            if (aj.readyState == 4 && aj.status == 200) {
-                                var data = JSON.parse(aj.responseText);
-                                if (data.result) {
-                                    window.location.replace("http://127.0.0.1:5000/posts");
-                                }
-                            }
-                        };
-
-                        aj.open("POST", "/delete_post", true);
-                        aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                        aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
-                        aj.send("post_id=" + post_id);
-                    };
-
-                    document.getElementById('delete_no').onclick = function() {
-                        popup.style.display = 'none';
-                        document.body.style.overflow = 'auto';
-                    };
-                };
-            }
-        });
     </script>
 {% endblock %}

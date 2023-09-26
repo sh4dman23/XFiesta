@@ -45,6 +45,11 @@ h1 {
     color: black !important;
 }
 
+button:disabled, button:disabled:hover, button:disabled:active {
+    box-shadow: none;
+    transform: none;
+}
+
 .container-main {
     text-align: center;
     padding: 20px;
