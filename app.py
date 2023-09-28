@@ -801,7 +801,7 @@ def add_comment():
         return jsonify({"result": False}), 400
     try:
         db.execute("BEGIN TRANSACTION;")
-        comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], escape(data["comment_contents"]))
+        comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], data["comment_contents"])
         db.execute("INSERT INTO user_comment_interactions(comment_id, user_id, status) VALUES(?, ?, 1);", comment_id, session["user_id"])
         info = db.execute("SELECT strftime('%d-%m-%Y', comment_time) AS date, strftime('%H:%M', comment_time) AS time FROM comments WHERE id = ?;", comment_id)
         db.execute("UPDATE posts SET comments = comments + 1 WHERE id = ?;", data["post_id"])
@@ -819,7 +819,7 @@ def add_comment():
     response = {
         "result": True,
         "comment_id": comment_id,
-        "comment_contents": comment[0]["contents"],
+        "comment_contents": escape(comment[0]["contents"]),
         "fullname": user[0]["fullname"],
         "username": user[0]["username"],
         "date": info[0]["date"],
@@ -935,6 +935,204 @@ def delete_comment():
     return jsonify({"result": True}), 200
 
 
+# Inbox Page
+@app.route("/inbox", defaults={'user_id': ''})
+@app.route("/inbox/", defaults={'user_id': ''})
+@app.route("/inbox/<user_id>")
+@login_required
+def inbox(user_id):
+    # Default Page
+    if not user_id or user_id == '':
+        inbox = db.execute("SELECT * FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+        for chat in inbox:
+            if chat["user_id1"] == session["user_id"]:
+                person_id = chat["user_id2"]
+            else:
+                person_id = chat["user_id1"]
+            person = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", person_id)
+            chat["user_id"] = person[0]["id"]
+            chat["fullname"] = person[0]["fullname"]
+            chat["username"] = person[0]["username"]
+
+            message = db.execute("SELECT contents FROM messages WHERE inbox_id = ? ORDER BY message_time DESC LIMIT 1;", chat["id"])
+            if message:
+                chat["last_message"] = message[0]["contents"][0:56] if len(message[0]["contents"]) >= 56 else message[0]["contents"][0:len(message[0]["contents"])]
+
+        return render_template("inbox.html", inbox = inbox)
+
+    # Messages page
+    else:
+        # Get user info
+        user = db.execute("SELECT id, username, fullname FROM users WHERE id = ?;", user_id)
+        inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], user_id, user_id, session["user_id"])
+        if len(user) != 1:
+            return redirect("/inbox")
+
+        if not inbox:
+            inbox_id = None
+        else:
+            inbox_id = inbox[0]["id"]
+
+        # Get messages and shared images
+        messages = db.execute(
+            """
+            SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time
+            FROM messages
+            WHERE inbox_id = ?
+            ORDER BY message_time;
+            """, inbox_id
+        )
+        for message in messages:
+            message_sender = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", message["sender_id"])
+            message["sender_fullname"] = message_sender[0]["fullname"]
+            message["sender_username"] = message_sender[0]["username"]
+        return render_template("chat.html",user=user[0], messages=messages, user_id=user_id, inbox_id=inbox_id)
+
+
+# Send messages to an user
+@app.route("/api/send_message", methods=["POST"])
+@login_required
+def send_message():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+    data = request.get_json()
+    print(data)
+
+    if not data or len(data["contents"]) < 1 or len(data["contents"]) > 640:
+        return jsonify({"result": False}), 400
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Get sender's (user's) info
+        user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+        if not user:
+            raise Exception("User does not exist!")
+
+        # If inbox doesn't exist yet, add it
+        if not data["inbox_id"]:
+            inbox_id = db.execute("INSERT INTO inbox(user_id1, user_id2, messages) VALUES(?, ?, 1);", session["user_id"], data["reciever_id"])
+        else:
+            inbox_id = data["inbox_id"]
+            db.execute("UPDATE inbox SET messages = messages + 1 WHERE id = ?;", inbox_id)
+
+        # Add to messages
+        message_id = db.execute("INSERT INTO messages(inbox_id, sender_id, recipient_id, contents) VALUES(?, ?, ?, ?);", inbox_id, session["user_id"], data["reciever_id"], data["contents"])
+        message = db.execute("SELECT strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE id = ?;", message_id)
+        db.execute("COMMIT;")
+
+        response = {
+            "result": True,
+            "fullname": user[0]["fullname"],
+            "username": user[0]["username"],
+            "owner": True,
+            "inbox_id": inbox_id,
+            "message_id": message_id,
+            "message_time": message[0]["time"],
+            "message_date": message[0]["date"],
+            "contents": escape(data["contents"])
+        }
+
+        return jsonify(response), 200
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
+
+
+# Checks for new messages (and sends them back if found)
+@app.route("/api/check_message", methods=["POST"])
+@login_required
+def check_message():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+    data = request.get_json()
+
+    # No message exists yet
+    if not data or not data["last_message_id"]:
+        return jsonify({"result": False}), 200
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Check if any new messages have been added
+        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", data["inbox_id"], data["last_message_id"])
+        if not messages:
+            db.execute("COMMIT;")
+            return jsonify({"result": True, "new": False}), 200
+
+        # Get inbox id
+        inbox_id = messages[0]["inbox_id"]
+
+        # Else, we know we have new messages
+        response = {
+            "result": True,
+            "new": True,
+            "inbox_id": inbox_id,
+            "last_message_id": messages[len(messages) - 1]["id"],
+            "comment_list": list()
+        }
+
+        user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
+        user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
+
+        for message in messages:
+            if message["sender_id"] == session["user_id"]:
+                fullname = user1[0]["fullname"]
+                username = user1[0]["username"]
+            else:
+                fullname = user2[0]["fullname"]
+                username = user2[0]["username"]
+
+            message_info = {
+                "fullname": fullname,
+                "username": username,
+                "owner": True if message["sender_id"] == session["user_id"] else False,
+                "message_id": message["id"],
+                "message_time": message["time"],
+                "message_date": message["date"],
+                "contents": message["contents"]
+            }
+            response["comment_list"].append(message_info)
+        db.execute("COMMIT;")
+        return jsonify(response)
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
+
+
+# Delete messages
+@app.route("/api/delete_message", methods=["POST"])
+@login_required
+def delete_message():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+
+    data = request.get_json()
+    print(data)
+
+    if not data or not data["message_id"]:
+        return jsonify({"result": False}), 400
+
+    info = db.execute("SELECT inbox_id, sender_id FROM messages WHERE id = ?;", data["message_id"])
+    if info[0]["sender_id"] != session["user_id"]:
+        return jsonify({"result": False}), 400
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        db.execute("UPDATE inbox SET messages = messages - 1 WHERE id = ?;", info[0]["inbox_id"])
+        db.execute("DELETE FROM messages WHERE id = ?;", data["message_id"])
+        db.execute("COMMIT;")
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
+
+    return jsonify({"result": True}), 200
+
+
+
 # Permanently delete user account and data
 @app.route("/remove_account", methods=["GET", "POST"])
 @login_required
@@ -984,6 +1182,10 @@ def remove_account():
                 db.execute("DELETE FROM comments WHERE user_id = ?;", session["user_id"])
 
                 db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
+
+                # Remove all messages sent and recieved by user
+                db.execute("DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?;", session["user_id"], session["user_id"])
+                db.execute("DELETE FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
 
                 # Delete all user interests
                 db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])

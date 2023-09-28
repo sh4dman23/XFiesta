@@ -22,6 +22,10 @@ h1 {
     font-weight: 700;
 }
 
+textarea {
+    resize: none;
+}
+
 .btn, .btn-primary {
     background-color: white !important;
     color: blue;
@@ -48,6 +52,10 @@ h1 {
 button:disabled, button:disabled:hover, button:disabled:active {
     box-shadow: none;
     transform: none;
+}
+
+button img {
+    pointer-events: none;
 }
 
 .container-main {
@@ -189,7 +197,7 @@ textarea {
     }
 
     .o-profile {
-        width: 100%;
+        width: 90%;
     }
 
     input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {

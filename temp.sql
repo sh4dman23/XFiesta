@@ -92,3 +92,26 @@ CREATE TABLE user_comment_interactions (
     FOREIGN KEY(comment_id) REFERENCES comments(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+
+CREATE TABLE inbox (
+    id INTEGER NOT NULL,
+    user_id1 INTEGER NOT NULL,
+    user_id2 INTEGER NOT NULL,
+    messages INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(id),
+    FOREIGN KEY(user_id1) REFERENCES users(id)
+    FOREIGN KEY(user_id2) REFERENCES users(id)
+);
+
+CREATE TABLE messages (
+    id INTEGER NOT NULL,
+    inbox_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    recipient_id INTEGER NOT NULL,
+    contents TEXT NOT NULL,
+    message_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    FOREIGN KEY(inbox_id) REFERENCES inbox(id),
+    FOREIGN KEY(sender_id) REFERENCES users(id),
+    FOREIGN KEY(recipient_id) REFERENCES users(id)
+);

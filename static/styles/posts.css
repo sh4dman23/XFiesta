@@ -15,6 +15,18 @@
     justify-content: left;
 }
 
+#posts-logo img {
+    -webkit-user-drag: none;
+    user-select: none;
+}
+
+#posts-logo-text {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
 #tabs {
     display: flex;
     width: 70%;

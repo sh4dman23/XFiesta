@@ -1,25 +1,23 @@
-document.addEventListener('DOMContentLoaded', function() {
-
-    // Assists in creating elements
-    function create_element(elementTag='div', elementName=null, elementClass=null, elementValue=null, elementType=null) {
-        let newElement = document.createElement(elementTag);
-        if (elementName) {
-            newElement.name = elementName;
-        }
-        if (elementClass) {
-            newElement.className = elementClass;
-        }
-        if (elementValue) {
-            newElement.value = elementValue;
-        }
-        if (elementType) {
-            newElement.type = elementType;
-        }
-        return newElement;
+ // Assists in creating elements
+ function create_element(elementTag='div', elementName=null, elementClass=null, elementValue=null, elementType=null) {
+    let newElement = document.createElement(elementTag);
+    if (elementName) {
+        newElement.name = elementName;
     }
+    if (elementClass) {
+        newElement.className = elementClass;
+    }
+    if (elementValue) {
+        newElement.value = elementValue;
+    }
+    if (elementType) {
+        newElement.type = elementType;
+    }
+    return newElement;
+}
 
+document.addEventListener('DOMContentLoaded', function() {
     const post_id = document.getElementById('post_box').getAttribute('post_id');
-
 
     let status = document.getElementById('post_box').getAttribute('interaction_status');
     const comment_count = comments;

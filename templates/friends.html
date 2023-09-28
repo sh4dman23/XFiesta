@@ -12,10 +12,10 @@
 {% block main %}
     <div class="container-main">
         <div class="bar">
-            <div id="friends-logo">
+            <div id="friends-logo" class="logo">
                 <div>
                     <img src="/static/images/friends-icon.png" alt="friend-logo" width="40px">
-                    <span>Friends</span>
+                    <span class="logo-text">Friends</span>
                 </div>
             </div>
             <div id="tabs">
@@ -40,6 +40,7 @@
                                 </div>
                             </div>
                             <div class="actions">
+                                <a href="/inbox/{{ friend['id'] }}"><button name="chat_button"class="action-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/comments.png" style="object-position: center; object-fit: contain; width: 50%;"></button></a>
                                 <button name="remove_button" class="action-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png"></button>
                             </div>
                         </div>
