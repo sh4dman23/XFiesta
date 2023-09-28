@@ -1052,54 +1052,56 @@ def check_message():
     if not data or not data["last_message_id"]:
         return jsonify({"result": False}), 200
 
-    try:
-        db.execute("BEGIN TRANSACTION;")
+    # Do this if inbox id is sent over, that is the inbox exists already // ELSE ITS GONNA TAKE IN THE TWO USER_IDS AND SEND BACK THE NEW INBOX ID IF FOUND
+    if data["inbox_id"]:
+        try:
+            db.execute("BEGIN TRANSACTION;")
 
-        # Check if any new messages have been added
-        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", data["inbox_id"], data["last_message_id"])
-        if not messages:
-            db.execute("COMMIT;")
-            return jsonify({"result": True, "new": False}), 200
+            # Check if any new messages have been added
+            messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", data["inbox_id"], data["last_message_id"])
+            if not messages:
+                db.execute("COMMIT;")
+                return jsonify({"result": True, "new": False}), 200
 
-        # Get inbox id
-        inbox_id = messages[0]["inbox_id"]
+            # Get inbox id
+            inbox_id = messages[0]["inbox_id"]
 
-        # Else, we know we have new messages
-        response = {
-            "result": True,
-            "new": True,
-            "inbox_id": inbox_id,
-            "last_message_id": messages[len(messages) - 1]["id"],
-            "comment_list": list()
-        }
-
-        user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
-        user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
-
-        for message in messages:
-            if message["sender_id"] == session["user_id"]:
-                fullname = user1[0]["fullname"]
-                username = user1[0]["username"]
-            else:
-                fullname = user2[0]["fullname"]
-                username = user2[0]["username"]
-
-            message_info = {
-                "fullname": fullname,
-                "username": username,
-                "owner": True if message["sender_id"] == session["user_id"] else False,
-                "message_id": message["id"],
-                "message_time": message["time"],
-                "message_date": message["date"],
-                "contents": message["contents"]
+            # Else, we know we have new messages
+            response = {
+                "result": True,
+                "new": True,
+                "inbox_id": inbox_id,
+                "last_message_id": messages[len(messages) - 1]["id"],
+                "comment_list": list()
             }
-            response["comment_list"].append(message_info)
-        db.execute("COMMIT;")
-        return jsonify(response)
-    except Exception as e:
-        db.execute("ROLLBACK;")
-        logging.error(f"Error: {e}")
-        return jsonify({"result": False}), 400
+
+            user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
+            user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
+
+            for message in messages:
+                if message["sender_id"] == session["user_id"]:
+                    fullname = user1[0]["fullname"]
+                    username = user1[0]["username"]
+                else:
+                    fullname = user2[0]["fullname"]
+                    username = user2[0]["username"]
+
+                message_info = {
+                    "fullname": fullname,
+                    "username": username,
+                    "owner": True if message["sender_id"] == session["user_id"] else False,
+                    "message_id": message["id"],
+                    "message_time": message["time"],
+                    "message_date": message["date"],
+                    "contents": message["contents"]
+                }
+                response["comment_list"].append(message_info)
+            db.execute("COMMIT;")
+            return jsonify(response)
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(f"Error: {e}")
+            return jsonify({"result": False}), 400
 
 
 # Delete messages
