@@ -1009,9 +1009,14 @@ def send_message():
         if not user:
             raise Exception("User does not exist!")
 
-        # If inbox doesn't exist yet, add it
+        # If inbox doesn't exist yet, check if the other user has initiated it and if not, add it
         if not data["inbox_id"]:
-            inbox_id = db.execute("INSERT INTO inbox(user_id1, user_id2, messages) VALUES(?, ?, 1);", session["user_id"], data["reciever_id"])
+            inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], data["reciever_id"], data["reciever_id"], session["user_id"])
+            if inbox:
+                inbox_id = inbox[0]["id"]
+                db.execute("UPDATE inbox SET messages = messages + 1 WHERE id = ?;", inbox_id)
+            else:
+                inbox_id = db.execute("INSERT INTO inbox(user_id1, user_id2, messages) VALUES(?, ?, 1);", session["user_id"], data["reciever_id"])
         else:
             inbox_id = data["inbox_id"]
             db.execute("UPDATE inbox SET messages = messages + 1 WHERE id = ?;", inbox_id)
@@ -1040,6 +1045,48 @@ def send_message():
         return jsonify({"result": False}), 400
 
 
+# Checks for deleted messages (and sends their IDs if found)
+@app.route("/api/check_deleted", methods=["POST"])
+@login_required
+def check_deleted():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+
+    data = request.get_json()
+
+    if not data or not data["inbox_id"]:
+        return jsonify({"result": True, "deleted": False}), 200
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Get deleted messages not sent by user
+        deleted_messages = db.execute("SELECT message_id FROM deleted_messages WHERE inbox_id = ? AND sender_id != ?;", data["inbox_id"], session["user_id"])
+
+        if not deleted_messages:
+            db.execute("COMMIT;")
+            return jsonify({"result": True, "deleted": False}), 200
+
+        # Clear deleted messages not sent by user
+        db.execute("DELETE FROM deleted_messages WHERE inbox_id = ? AND sender_id != ?;", data["inbox_id"], session["user_id"])
+        last_message = db.execute("SELECT id FROM messages WHERE inbox_id = ? ORDER BY id DESC LIMIT 1;", data["inbox_id"])
+
+        response = {
+            "result": True,
+            "deleted": True,
+            "last_message_id": last_message[0]["id"] if last_message else None,
+            "deleted_messages": deleted_messages
+        }
+        db.execute("COMMIT;")
+        return jsonify(response)
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(e)
+        return jsonify({"result": False}), 400
+
+
+
+
 # Checks for new messages (and sends them back if found)
 @app.route("/api/check_message", methods=["POST"])
 @login_required
@@ -1049,59 +1096,72 @@ def check_message():
     data = request.get_json()
 
     # No message exists yet
-    if not data or not data["last_message_id"]:
+    if not data:
         return jsonify({"result": False}), 200
 
-    # Do this if inbox id is sent over, that is the inbox exists already // ELSE ITS GONNA TAKE IN THE TWO USER_IDS AND SEND BACK THE NEW INBOX ID IF FOUND
-    if data["inbox_id"]:
-        try:
-            db.execute("BEGIN TRANSACTION;")
+    # If not last_message_id has been sent, it is safe to assume that the inbox is non-existent (yet) or empty
+    if not data["last_message_id"]:
+        data["last_message_id"] = 0
 
-            # Check if any new messages have been added
-            messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", data["inbox_id"], data["last_message_id"])
-            if not messages:
-                db.execute("COMMIT;")
-                return jsonify({"result": True, "new": False}), 200
+    # If inbox id has not been sent check for new one
+    if not data["inbox_id"] or data["inbox_id"] == "":
+        inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], data["person_id"], data["person_id"], session["user_id"])
+        if not inbox:
+            return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
+        else:
+            inbox_id = inbox[0]["id"]
+    else:
+        inbox_id = data["inbox_id"]
 
-            # Get inbox id
-            inbox_id = messages[0]["inbox_id"]
+    # Do this when an inbox id has been sent or found (if not sent)
+    try:
+        db.execute("BEGIN TRANSACTION;")
 
-            # Else, we know we have new messages
-            response = {
-                "result": True,
-                "new": True,
-                "inbox_id": inbox_id,
-                "last_message_id": messages[len(messages) - 1]["id"],
-                "comment_list": list()
-            }
-
-            user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
-            user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
-
-            for message in messages:
-                if message["sender_id"] == session["user_id"]:
-                    fullname = user1[0]["fullname"]
-                    username = user1[0]["username"]
-                else:
-                    fullname = user2[0]["fullname"]
-                    username = user2[0]["username"]
-
-                message_info = {
-                    "fullname": fullname,
-                    "username": username,
-                    "owner": True if message["sender_id"] == session["user_id"] else False,
-                    "message_id": message["id"],
-                    "message_time": message["time"],
-                    "message_date": message["date"],
-                    "contents": message["contents"]
-                }
-                response["comment_list"].append(message_info)
+        # Check if any new messages have been added
+        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", inbox_id, data["last_message_id"])
+        if not messages:
             db.execute("COMMIT;")
-            return jsonify(response)
-        except Exception as e:
-            db.execute("ROLLBACK;")
-            logging.error(f"Error: {e}")
-            return jsonify({"result": False}), 400
+            return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
+
+        # Else, we know we have new messages
+        response = {
+            "result": True,
+            "new": True,
+            "inbox_id": inbox_id,
+            "last_message_id": messages[len(messages) - 1]["id"],
+            "comment_list": list()
+        }
+
+        user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
+        user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
+
+        if not user2:
+            raise Exception("User account not found!")
+
+        for message in messages:
+            if message["sender_id"] == session["user_id"]:
+                fullname = user1[0]["fullname"]
+                username = user1[0]["username"]
+            else:
+                fullname = user2[0]["fullname"]
+                username = user2[0]["username"]
+
+            message_info = {
+                "fullname": fullname,
+                "username": username,
+                "owner": True if message["sender_id"] == session["user_id"] else False,
+                "message_id": message["id"],
+                "message_time": message["time"],
+                "message_date": message["date"],
+                "contents": message["contents"]
+            }
+            response["comment_list"].append(message_info)
+        db.execute("COMMIT;")
+        return jsonify(response)
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"Error: {e}")
+        return jsonify({"result": False}), 400
 
 
 # Delete messages
@@ -1124,6 +1184,7 @@ def delete_message():
     try:
         db.execute("BEGIN TRANSACTION;")
         db.execute("UPDATE inbox SET messages = messages - 1 WHERE id = ?;", info[0]["inbox_id"])
+        db.execute("INSERT INTO deleted_messages(inbox_id, message_id, sender_id) VALUES(?, ?, ?);", info[0]["inbox_id"], data["message_id"], session["user_id"])
         db.execute("DELETE FROM messages WHERE id = ?;", data["message_id"])
         db.execute("COMMIT;")
     except Exception as e:

@@ -237,6 +237,7 @@
                     add_comment(responseData);
                     console.log(responseData);
 
+                    // Update inbox id if not found
                     if (inbox_id == null) {
                         inbox_id = responseData.inbox_id;
                     }
@@ -299,6 +300,11 @@
                             throw new Error("Error processing request!");
                         }
 
+                        // Update inbox id, if null
+                        if (inbox_id == null) {
+                            inbox_id = responseData.inbox_id;
+                        }
+
                         if (!responseData.new) {
                             return;
                         }
@@ -311,10 +317,6 @@
                             if (!last_message_sent_id || comment_data.message_id != last_message_sent_id) {
                                 add_comment(comment_data);
                             }
-                        }
-
-                        if (inbox_id == null) {
-                            inbox_id = responseData.inbox_id;
                         }
 
                         if (atBottom) {
@@ -330,6 +332,59 @@
                     }
                 }
             }, 700);
+
+            // Periodically ask the server for deleted messages
+            setInterval(async function() {
+                if (inbox_id) {
+                    try {
+                        const url = '/api/check_deleted';
+                        const data = {
+                            "inbox_id": inbox_id
+                        };
+
+                        const response = await fetch(url, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-Requested-With": "XMLHttpRequest"
+                            },
+                            body: JSON.stringify(data)
+                        });
+
+                        if (!response.ok) {
+                            return;
+                        }
+
+                        const responseData = await response.json();
+                        console.log(responseData);
+
+                        if (!responseData.result) {
+                            return;
+                        }
+
+                        // No new deleted message were found
+                        if (!responseData.deleted) {
+                            return;
+                        }
+
+                        last_message_id = responseData.last_message_id;
+
+                        if (responseData.deleted_messages) {
+                            for (let deleted_message of responseData.deleted_messages) {
+                                console.log(deleted_message);
+                                const messageBox = document.getElementById(deleted_message.message_id);
+                                console.log(messageBox);
+
+                                if (messageBox) {
+                                    messageBox.remove();
+                                }
+                            }
+                        }
+                    } catch(error) {
+                        // Pass
+                    }
+                }
+            }, 1500);
 
             // Delete buttons
             chatContainer.addEventListener('click', async function(event) {

@@ -115,3 +115,13 @@ CREATE TABLE messages (
     FOREIGN KEY(sender_id) REFERENCES users(id),
     FOREIGN KEY(recipient_id) REFERENCES users(id)
 );
+
+CREATE TABLE deleted_messages (
+    id INTEGER NOT NULL,
+    inbox_id INTEGER NOT NULL,
+    message_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    PRIMARY KEY(id),
+    FOREIGN KEY(inbox_id) REFERENCES inbox(id),
+    FOREIGN KEY(sender_id) REFERENCES users(id)
+);
