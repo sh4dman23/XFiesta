@@ -102,8 +102,8 @@ button img {
     align-items: center;
 }
 
-.form-control {
-    width: 30% !important;
+input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {
+    width: 30vw !important;
 }
 
 

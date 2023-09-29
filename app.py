@@ -1191,6 +1191,106 @@ def delete_message():
     return jsonify({"result": True}), 200
 
 
+# Search Page
+@app.route("/search")
+@login_required
+def search():
+    return render_template("search.html")
+
+
+# Manage search queries
+@app.route("/api/search", methods=["POST"])
+@login_required
+def search_q():
+    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+        abort(404)
+
+    data = request.get_json()
+
+    if not data or not data["target"] or data["target"] not in ["users", "posts"] or not data["option"] or data["option"] not in ["users_all", "users_friends", "posts_all", "posts_mine", "posts_friends"] or not data["query"] or len(data["query"]) < 1 or len(data["query"]) > 640:
+        return jsonify({"result": False}), 400
+
+    # Search through users
+    if data["target"] == "users":
+        # Search through all
+        if data["option"] == "users_all":
+            users = db.execute("SELECT DISTINCT id, fullname, username FROM users WHERE username LIKE ? OR fullname LIKE ? ORDER BY username, fullname;", "%" + data["query"] + "%", "%" + data["query"] + "%")
+
+        # Search through friends
+        elif data["option"] == "users_friends":
+           users = db.execute(
+               """
+               SELECT DISTINCT users.id, users.fullname, users.username
+               FROM users
+               JOIN friends
+               ON ((users.id = friends.user_id1 AND friends.user_id2 = ?) OR (users.id = friends.user_id2 AND friends.user_id1 = ?))
+               WHERE friends.friends = 1
+               AND users.username LIKE ? OR users.fullname LIKE ?
+               ORDER BY users.username, users.fullname;
+               """,
+               session["user_id"], session["user_id"], "%" + data["query"] + "%", "%" + data["query"] + "%"
+            )
+
+        # Invalid input
+        else:
+            return jsonify({"result": False}), 400
+
+        # No search results
+        if not users:
+            return jsonify({"result": True, "found": False}), 200
+
+        response = {
+            "result": True,
+            "found": True,
+            "target": "users",
+            "search_results": users
+        }
+    else:
+        # Search through all
+        if data["option"] == "posts_all":
+            posts = db.execute("SELECT DISTINCT id, title, contents, imagelocation, likes, comments FROM posts WHERE title LIKE ? ORDER BY title;", "%" + data["query"] + "%")
+
+        # Search through user's own
+        elif data["option"] == "posts_mine":
+            posts = db.execute("SELECT DISTINCT id, title, contents, imagelocation, likes, comments FROM posts WHERE user_id = ? AND title LIKE ? ORDER BY title;", session["user_id"], "%" + data["query"] + "%")
+
+        # Search through user's friends'
+        elif data["option"] == "posts_friends":
+            posts = db.execute(
+                """
+                SELECT DISTINCT p.id, p.title, p.contents, p.imagelocation, p.likes, p.comments
+                FROM posts as p
+                JOIN friends AS f
+                ON ((p.user_id = f.user_id1 AND f.user_id2 = ?) OR (p.user_id = f.user_id2 AND f.user_id1 = ?))
+                WHERE f.friends = 1
+                AND p.title LIKE ?
+                ORDER BY p.title;
+                """,
+                session["user_id"], session["user_id"], "%" + data["query"] + "%"
+            )
+        # Invalid input
+        else:
+            return jsonify({"result": False}), 400
+
+        # No results found
+        if not posts:
+            return jsonify({"result": True, "found": False}), 200
+
+        # Add tags to every post
+        for post in posts:
+            post["contents"] = post["contents"][0:121] + "..." if len(post["contents"]) > 121 else post["contents"][0:121]
+            tags = db.execute("SELECT DISTINCT i.interest AS tag FROM interests AS i JOIN post_tags AS p ON i.id = p.tag_id WHERE p.post_id = ? ORDER BY tag;", post["id"])
+            post["tags"] = tags
+
+        response = {
+            "result": True,
+            "found": True,
+            "target": "posts",
+            "search_results": posts
+        }
+
+    return jsonify(response)
+
 
 # Permanently delete user account and data
 @app.route("/remove_account", methods=["GET", "POST"])
@@ -1243,6 +1343,7 @@ def remove_account():
                 db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
 
                 # Remove all messages sent and recieved by user
+                db.execute("DELETE FROM deleted_messages WHERE sender_id = ?;", session["user_id"])
                 db.execute("DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?;", session["user_id"], session["user_id"])
                 db.execute("DELETE FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
 
@@ -1263,3 +1364,7 @@ def remove_account():
             return apology("Invalid Submission!")
     else:
         return render_template("remove_account.html")
+
+
+if __name__ == '__main__':
+    app.run()

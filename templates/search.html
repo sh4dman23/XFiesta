@@ -1,0 +1,413 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link rel="stylesheet" href="/static/styles/search.css">
+{% endblock %}
+
+{% block title %}
+    Search
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div>
+            <div class="bar">
+                <div id="search_targets" class="btn-group" role="group" aria-label="Select Search Target Type">
+                    <button name="users" type="button" class="btn btn-primary">Users</button>
+                    <button name="posts" type="button" class="btn btn-primary">Posts</button>
+                </div>
+                <div id="search_options">
+                    <div id="users_search_options" class="btn-group" role="group" style="display: none;" aria-label="Select Search Target Type">
+                        <button name="users_all" type="button" class="btn btn-primary">All</button>
+                        <button name="users_friends" type="button" class="btn btn-primary">Friends</button>
+                    </div>
+                    <div id="posts_search_options" class="btn-group" role="group" style="display: none;" aria-label="Select Search Target Type">
+                        <button name="posts_all" type="button" class="btn btn-primary">All</button>
+                        <button name="posts_mine" type="button" class="btn btn-primary">Mine</button>
+                        <button name="posts_friends" type="button" class="btn btn-primary">Friends'</button>
+                    </div>
+                </div>
+                <input id="search_bar" class="form-control" maxlength="640" autofocus autocomplete="off" type="text" placeholder="Search">
+                <button id="search_button" class="btn btn-primary btn-prof search" type="button">Search</button>
+            </div>
+            <div id="warning" style="display: none;"></div>
+        </div>
+        <div class="o-profile">
+            <div id="resultContainer" class="search_results">
+                {% if user %}
+                    <div class="search_result">
+                        <div class="user">
+                            <div class="user-info">
+                                <div class="profile-pic"><img src="/static/images/user_profile_pic.png"></div>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name">Name</div>
+                                    <div class="username">@username</div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <a><button class="action-button">
+                                        <img src="/static/images/profile.png">
+                                </button></a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                {% if posts %}
+                    <div class="search_result">
+                        <div class="post">
+                            <div class="counts"><b>Likes</b><br>20<br><b>Comments</b><br>2</div>
+                            <div class="post_image">
+                                <img src="/server_hosted_files/posts/2/img_5581-2.jpg">
+                            </div>
+                            <div class="tags">
+                                <div class="tag">
+                                    Swimming
+                                </div>
+                                <div class="tag">
+                                    Art
+                                </div>
+                                <div class="tag">
+                                    Photography
+                                </div>
+                            </div>
+                            <div class="post_info">
+                                <div class="title">Title</div>
+                                <div class="contents">Lorem ipsum dolor sit amet consectetur adipisicing elit. Maxime asperiores, libero vitae ea molestiae rerum quas repellat...</div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+                <div id="no_results">Your search results will appear here.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Assists in creating elements
+        function create_element(elementTag='div', elementClass=null) {
+            let newElement = document.createElement(elementTag);
+            if (elementClass) {
+                newElement.className = elementClass;
+            }
+            return newElement;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const users = document.querySelector('[name="users"]');
+            const users_all = document.querySelector('[name="users_all"]');
+            const users_friends= document.querySelector('[name="users_friends"]');
+
+            const posts = document.querySelector('[name="posts"]');
+            const posts_all = document.querySelector('[name="posts_all"]');
+            const posts_mine = document.querySelector('[name="posts_mine"]');
+            const posts_friends= document.querySelector('[name="posts_friends"]');
+
+            const search_bar = document.getElementById('search_bar');
+            const search_button = document.getElementById('search_button');
+            const warning = document.getElementById('warning');
+
+            const resultContainer = document.getElementById('resultContainer');
+
+            const no_results = document.getElementById('no_results');
+
+            // Search target initially will be null
+            let sTarget = null;
+            let sOption = null;
+
+            // Add results from search query with target users
+            function add_user_result(result) {
+                const resultDiv = create_element('div', 'search_result');
+                resultDiv.style.display = 'none';
+
+                const userDiv = create_element('div', 'user');
+
+                const infoDiv = create_element('div', 'user-info');
+                const pfpDiv = create_element('div', 'profile-pic');
+
+                pfpDiv.innerHTML = '<img src="/static/images/user_profile_pic.png">';
+                infoDiv.appendChild(pfpDiv);
+
+                const nameDiv = create_element('div');
+                nameDiv.style = 'margin-left: 0.5vw; text-align: left;';
+                nameDiv.innerHTML = '<div class="name">' + result.fullname + '</div><div class="username">@' + result.username + '</div>';
+                infoDiv.appendChild(nameDiv);
+
+                const actionDiv = create_element('div', 'actions');
+                const anchor = create_element('a');
+                anchor.href = '/profile/' + result.id;
+
+                const button = create_element('button', 'action-button');
+                button.innerHTML = '<img src="/static/images/profile.png">';
+                anchor.appendChild(button);
+                actionDiv.appendChild(anchor);
+
+                userDiv.appendChild(infoDiv);
+                userDiv.appendChild(actionDiv);
+                resultDiv.appendChild(userDiv);
+
+                resultContainer.appendChild(resultDiv);
+                resultDiv.style.display = 'flex';
+            }
+
+            // Add results from search query with target posts
+            function add_post_result(result) {
+                const resultDiv = create_element('div', 'search_result');
+                resultDiv.style.display = 'none';
+
+                const postDiv = create_element('div', 'post');
+
+                const countDiv = create_element('div', 'counts');
+                countDiv.innerHTML = '<b>Likes</b><br>' + result.likes + '<br><b>Comments</b><br>' + result.comments;
+                postDiv.appendChild(countDiv);
+
+                const imgDiv = create_element('div', 'post_image');
+                if (result.imagelocation) {
+                    imgDiv.innerHTML = '<img src="/' + result.imagelocation + '"</img>';
+                }
+                postDiv.appendChild(imgDiv);
+
+                const tagsDiv = create_element('div', 'tags');
+                for (let tag of result.tags) {
+                    const tagDiv = create_element('div', 'tag');
+                    tagDiv.innerHTML = tag.tag; // tags is a list of dictionaries with only one key - 'tag'
+                    tagsDiv.appendChild(tagDiv);
+                }
+                postDiv.appendChild(tagsDiv);
+
+                const infoDiv = create_element('div', 'post_info');
+                infoDiv.innerHTML = '<div class="title"><a href="/post/' + result.id + '">' + result.title + '</a></div><p class="contents">' + result.contents + '</p>';
+                postDiv.appendChild(infoDiv);
+
+                resultDiv.appendChild(postDiv);
+                resultContainer.appendChild(resultDiv);
+                resultDiv.style.display = 'flex';
+            }
+
+            // Search targets
+            document.getElementById('search_targets').addEventListener('click', function(event) {
+                const target = event.target;
+
+                // Change target to users
+                if (target.name == 'users') {
+                    // Change target to users
+                    if (sTarget == 'users') {
+                        sTarget = null;
+                        users.classList.remove('btn-prof');
+                        posts.classList.remove('btn-prof');
+                    } else {
+                        sTarget = 'users';
+                        users.classList.add('btn-prof');
+                        posts.classList.remove('btn-prof');
+                    }
+
+                    // Make options visible
+                    if (sTarget == 'users') {
+                        document.getElementById('posts_search_options').style.display = 'none';
+                        document.getElementById('users_search_options').style.display = 'block';
+
+                        if (sOption != 'users_all') {
+                            users_all.click();
+                        }
+                    } else {
+                        document.getElementById('users_search_options').style.display = 'none';
+                    }
+                }
+
+                // Change target to posts
+                if (target.name == 'posts') {
+                    // Change target to posts
+                    if (sTarget == 'posts') {
+                        sTarget = null;
+                        posts.classList.remove('btn-prof');
+                        users.classList.remove('btn-prof');
+                    } else {
+                        sTarget = 'posts';
+                        posts.classList.add('btn-prof');
+                        users.classList.remove('btn-prof');
+                    }
+
+                    // Make options visible
+                    if (sTarget == 'posts') {
+                        document.getElementById('users_search_options').style.display = 'none';
+                        document.getElementById('posts_search_options').style.display = 'block';
+
+                        if (sOption != 'posts_all') {
+                            posts_all.click();
+                        }
+                    } else {
+                        document.getElementById('posts_search_options').style.display = 'none';
+                    }
+                }
+            });
+
+            // Search options
+            document.getElementById('search_options').addEventListener('click', function(event) {
+                const target = event.target;
+
+                // All options for users target
+                if (target.name == 'users_all') {
+                    if (sOption == 'users_all') {
+                        sOption = null;
+                        users_all.classList.remove('btn-prof');
+                        users_friends.classList.remove('btn-prof');
+                    } else {
+                        sOption = 'users_all';
+                        users_all.classList.add('btn-prof');
+                        users_friends.classList.remove('btn-prof');
+                    }
+                }
+                if (target.name == 'users_friends') {
+                    if (sOption == 'users_friends') {
+                        sOption = null;
+                        users_friends.classList.remove('btn-prof');
+                        users_all.classList.remove('btn-prof');
+                    } else {
+                        sOption = 'users_friends';
+                        users_friends.classList.add('btn-prof');
+                        users_all.classList.remove('btn-prof');
+                    }
+                }
+
+                // All options for posts target
+                if (target.name == 'posts_all') {
+                    if (sOption == 'posts_all') {
+                        sOption = null;
+                        posts_all.classList.remove('btn-prof');
+                        posts_mine.classList.remove('btn-prof');
+                        posts_friends.classList.remove('btn-prof');
+                    } else {
+                        sOption = 'posts_all';
+                        posts_all.classList.add('btn-prof');
+                        posts_mine.classList.remove('btn-prof');
+                        posts_friends.classList.remove('btn-prof');
+                    }
+                }
+                if (target.name == 'posts_mine') {
+                    if (sOption == 'posts_mine') {
+                        sOption = null;
+                        posts_mine.classList.remove('btn-prof');
+                        posts_all.classList.remove('btn-prof');
+                        posts_friends.classList.remove('btn-prof');
+                    } else {
+                        sOption = 'posts_mine';
+                        posts_mine.classList.add('btn-prof');
+                        posts_all.classList.remove('btn-prof');
+                        posts_friends.classList.remove('btn-prof');
+                    }
+                }
+                if (target.name == 'posts_friends') {
+                    if (sOption == 'posts_friends') {
+                        sOption = null;
+                        posts_friends.classList.remove('btn-prof');
+                        posts_all.classList.remove('btn-prof');
+                        posts_mine.classList.remove('btn-prof');
+                    } else {
+                        sOption = 'posts_friends';
+                        posts_friends.classList.add('btn-prof');
+                        posts_mine.classList.remove('btn-prof');
+                        posts_all.classList.remove('btn-prof');
+                    }
+                }
+            });
+
+            // Search
+            search_button.onclick = async function() {
+                if (search_bar.value.length < 1) {
+                    warning.innerHTML = 'Empty search query!';
+                    warning.style.display = 'block';
+                    setTimeout(function() {
+                        warning.style.display = 'none';
+                    }, 3000);
+
+                    return;
+                } else if (search_bar.value.length > 640) {
+                    warning.innerHTML = 'Query exceeds maximum length!';
+                    warning.style.display = 'block';
+                    setTimeout(function() {
+                        warning.style.display = 'none';
+                    }, 3000);
+
+                    return;
+                }
+
+                if (!sTarget || !sOption) {
+                    warning.innerHTML = 'Choose search target and options!';
+                    warning.style.display = 'block';
+                    setTimeout(function() {
+                        warning.style.display = 'none';
+                    }, 3000);
+
+                    return;
+                }
+
+                try {
+                    const url = '/api/search';
+                    const data = {
+                        'target': sTarget,
+                        'option': sOption,
+                        'query': search_bar.value
+                    };
+
+                    console.log(sTarget, sOption);
+
+                    let results = document.querySelectorAll('.search_result');
+                    for (let result of results) {
+                        result.remove();
+                    }
+
+                    no_results.innerHTML = 'Loading...';
+                    no_results.style.display = 'block';
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify(data)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Error sending data!');
+                    }
+
+                    no_results.style.display = 'none';
+
+                    const responseData = await response.json();
+                    console.log(responseData);
+
+                    if (!responseData.result) {
+                        throw new Error('Error processing data!');
+                        return;
+                    }
+                    if (!responseData.found) {
+                        no_results.innerHTML = 'No results were found!';
+                        no_results.style.display = 'block';
+                        return;
+                    }
+                    if (responseData.target == 'users') {
+                        for (let result of responseData.search_results) {
+                            console.log(result);
+                            add_user_result(result);
+                        }
+                    } else {
+                        for (let result of responseData.search_results) {
+                            add_post_result(result);
+                        }
+                    }
+                } catch(error) {
+                    console.log(error);
+                    warning.innerHTML = 'Error performing search!'
+                    warning.style.display = 'block';
+                    setTimeout(function() {
+                        warning.style.display = 'none';
+                    }, 3000);
+
+                    no_results.innerHTML = 'Your search results will appear here!';
+                    no_results.style.display = 'block';
+                    return;
+                }
+            };
+        });
+    </script>
+{% endblock %}
