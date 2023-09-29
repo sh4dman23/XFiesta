@@ -1,7 +1,7 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
-    <link href="/static/scripts/post.css" rel="stylesheet">
+    <link href="/static/styles/post.css" rel="stylesheet">
     <script src="/static/scripts/editpost.js"></script>
 {% endblock %}
 
@@ -13,7 +13,7 @@
     <div class="container-main o-profile" id="edit_post">
         <h3>Edit Post</h3>
         <form id="form" action="/edit_post" method="post" enctype="multipart/form-data">
-            <img id="preview" src="{% if post['imagelocation'] %} {{ post['imagelocation'] }} {% else %}{% endif %}">
+            <img id="preview" src="{% if post['imagelocation'] %} /{{ post['imagelocation'] }} {% else %}{% endif %}">
             <div class="remove_preview_button">
                 <button id="remove_preview" style="{% if post['imagelocation'] %} display: block; {% else %} display: none; {% endif %}" class="btn btn-primary" type="button">Remove Image</button>
             </div>
@@ -47,7 +47,7 @@
                 </div>
             </div>
             <button id="submit" class="btn btn-primary btn-prof" type="submit">Post</button>
-            <a href="/posts"><button id="cancel" class="btn btn-primary btn-prof" type="button">Cancel</button></a>
+            <button id="cancel" class="btn btn-primary btn-prof" type="button" onclick="history.back();">Cancel</button>
         </form>
     </div>
     <script>

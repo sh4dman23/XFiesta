@@ -4,13 +4,32 @@ body {
 
 .top-bar {
     background-color: aliceblue;
-    width: 98%;
+    margin-left: auto;
     display: flex;
     border: 2px solid transparent;
-    justify-content: center;
+    justify-content: right;
     border-radius: 10px;
-    padding: 5px 5px;
-    margin: 10px 10px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    margin-right: 1.5rem;
+}
+
+#go_back {
+    width: 50%;
+    justify-content: left !important;
+    margin-left: 1.5rem;
+}
+
+#go_back button {
+    width: 2rem !important;
+    height: 2rem !important;
+    border: 0.5px solid transparent !important;
+}
+
+#go_back button img {
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    object-fit: cover;
 }
 
 .name {
@@ -28,13 +47,13 @@ body {
     border: 2px solid transparent;
     border-radius: 10px;
     background-color: white;
-    height: 80vh;
+    height: 70vh;
     max-height: 80vh;
     overflow-y: auto;
     overflow-x: hidden;
 }
 
-#no-message {
+#no_message {
     width: 100%;
     height: 85%;
     text-align: center;

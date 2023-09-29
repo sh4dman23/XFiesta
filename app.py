@@ -384,10 +384,9 @@ def friends():
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
 
 
-@app.route("/post")
+@app.route("/post/<post_id>")
 @login_required
-def post():
-    post_id = request.args.get("id")
+def post(post_id):
     post = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE id = ?;", post_id)
     if not post_id or not post:
         return redirect("/posts")
@@ -504,7 +503,7 @@ def createpost():
                     os.makedirs(imagelocation)
                 imagelocation = os.path.join(imagelocation, str(image.filename))
                 image.save(imagelocation)
-                db.execute("UPDATE posts SET imagelocation = ? WHERE id = ?;", imagelocation, post_id)
+                db.execute("UPDATE posts SET imagelocation = ? WHERE id = ?;", str(imagelocation), post_id)
 
             # Add post tags
             for tag in tags:
@@ -608,8 +607,10 @@ def manage_likes():
 
 
 # Edit posts
-@app.route("/edit_post", methods=["GET", "POST"])
-def edit_post():
+@app.route("/edit_post", defaults={'post_id': ''}, methods=["GET", "POST"])
+@app.route("/edit_post/", defaults={'post_id': ''}, methods=["GET", "POST"])
+@app.route("/edit_post/<post_id>", methods=["GET", "POST"])
+def edit_post(post_id):
     if request.method == "POST":
         post_id = request.form.get("post_id")
         title = request.form.get("title")
@@ -657,7 +658,7 @@ def edit_post():
                     # Add new image to previous directory
                     save_location = os.path.join(prev_img_dir, image.filename)
                     image.save(save_location)
-                    imagelocation = save_location
+                    imagelocation = str(save_location)
                 else:
                     # Remove image directory (if found)
                     if os.path.exists(prev_img_dir) and not os.listdir(prev_img_dir):
@@ -710,12 +711,8 @@ def edit_post():
         return redirect("/posts")
 
     else:
-        # Get id of post
-        post_id = request.args.get("post_id")
-
         # If not found, redirect to posts
         if not post_id or post_id == "":
-            print("a")
             return redirect("/posts")
 
         post = db.execute("SELECT * FROM posts WHERE id = ?;", post_id)
@@ -1085,8 +1082,6 @@ def check_deleted():
         return jsonify({"result": False}), 400
 
 
-
-
 # Checks for new messages (and sends them back if found)
 @app.route("/api/check_message", methods=["POST"])
 @login_required
@@ -1153,8 +1148,9 @@ def check_message():
                 "message_id": message["id"],
                 "message_time": message["time"],
                 "message_date": message["date"],
-                "contents": message["contents"]
+                "contents": escape(message["contents"])
             }
+            print(message_info["contents"])
             response["comment_list"].append(message_info)
         db.execute("COMMIT;")
         return jsonify(response)

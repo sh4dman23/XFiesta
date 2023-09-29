@@ -31,7 +31,7 @@
                 <div>
                     <div class="post-image">
                         {% if post["imagelocation"] %}
-                            <img style="width: 70%" src="{{ post['imagelocation'] }}">
+                            <img style="width: 70%" src="/{{ post['imagelocation'] }}">
                         {% endif %}
                     </div>
                 </div>
@@ -67,7 +67,7 @@
                     <div id="warning" style="width: 40%; font-size: medium;"></div>
                     <div class="btn-right">
                         {% if post["owner"] == True %}
-                            <a href="/edit_post?post_id={{ post['id'] }}"><button  id="edit_button" name="edit_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
+                            <a href="/edit_post/{{ post['id'] }}"><button  id="edit_button" name="edit_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
                             <button id="delete_button" name="delete_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/delete.png"> </button>
                         {% endif %}
                     </div>
