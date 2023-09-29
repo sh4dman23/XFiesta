@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', function() {
             event.preventDefault();
 
             var post_id = share_button.value;
-            var url = "http://127.0.0.1:5000/post?id=" + post_id;
+            var url = "http://127.0.0.1:5000/post/" + post_id;
 
             warning = document.getElementById(post_id).querySelector('.warning');
 

@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const nameDiv = create_element('div', null, 'name');
         const anchor = create_element('a');
         anchor.tabindex = '-1';
-        anchor.href = '/profile?username=' + data.username;
+        anchor.href = '/profile/' + data.username;
         anchor.innerHTML = data.username;
         nameDiv.appendChild(anchor);
         topDiv.appendChild(nameDiv);
@@ -94,13 +94,17 @@ document.addEventListener('DOMContentLoaded', function() {
     check_empty_chat();
 
     // Send message
-    send_box.addEventListener('input', function() {
+    send_box.addEventListener('keyup', function(event) {
         if (send_box.value.length > 640) {
             warning.innerHTML = 'Maximum characters reached!';
             warning.style.display = 'block';
             send_box.value = send_box.value.slice(0, maxLength);
         } else {
             warning.style.display = 'none';
+        }
+        if (event.key == 'Enter' && !event.shiftKey) {
+            send_box.disabled = true;
+            send_button.click();
         }
     });
 

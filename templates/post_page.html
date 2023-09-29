@@ -16,13 +16,13 @@
             <div id="post_box" class="post-box" post_id="{{ post['id'] }}" interaction_status="{{ post['status'] }}">
                 <div class="top-part">
                     <div class="user-info">
-                        <a href="/profile?username={{ post['username'] }}"><div class="profile-pic-post"><img src="/static/images/user_profile_pic.png"></div></a>
+                        <a href="/profile/{{ post['username'] }}"><div class="profile-pic-post"><img src="/static/images/user_profile_pic.png"></div></a>
                         <div style="margin-left: 0.5vw; text-align: left;">
-                            <div class="name"><a href="/profile?username={{ post['username'] }}">{{ post["fullname"] }}</a></div>
-                            <div class="username"><a href="/profile?username={{ post['username'] }}">@{{ post["username"] }}</a></div>
+                            <div class="name"><a href="/profile/{{ post['username'] }}">{{ post["fullname"] }}</a></div>
+                            <div class="username"><a href="/profile/{{ post['username'] }}">@{{ post["username"] }}</a></div>
                         </div>
                     </div>
-                    <div class="post-title" style="font-size: 2rem;"><a href="/post?id={{ post['id'] }}">{{ post["title"] }}</a></div>
+                    <div class="post-title" style="font-size: 2rem;"><a href="/post/{{ post['id'] }}">{{ post["title"] }}</a></div>
                     <div class="post-timestamp">
                         <div>{{ post["date"] }}</div>
                         <div>{{ post["time"] }}</div>
@@ -110,10 +110,10 @@
                         <div id="{{ comment['id'] }}" class="comment" status="{{ comment['status'] }}">
                             <div class="top-part">
                                 <div class="user-info" style="margin-left: 0%;">
-                                    <a href="/profile?username={{ comment['username'] }}"><div class="profile-pic-comment"><img src="/static/images/user_profile_pic.png"></div></a>
+                                    <a href="/profile/{{ comment['username'] }}"><div class="profile-pic-comment"><img src="/static/images/user_profile_pic.png"></div></a>
                                     <div class="names">
-                                        <a href="/profile?username={{ comment['username'] }}"><div class="name">{{ comment["fullname"] }}</div></a>
-                                        <a href="/profile?username={{ comment['username'] }}"><div class="username">@{{ comment["username"] }}</div></a>
+                                        <a href="/profile/{{ comment['username'] }}"><div class="name">{{ comment["fullname"] }}</div></a>
+                                        <a href="/profile/{{ comment['username'] }}"><div class="username">@{{ comment["username"] }}</div></a>
                                     </div>
                                 </div>
                                 <div class="post-timestamp ts-right">

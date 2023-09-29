@@ -33,10 +33,10 @@
                     {% for friend in friends %}
                         <div id="{{ friend['id'] }}" class="friend-box">
                             <div class="friend-info">
-                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <a href="/profile/{{ friend['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div></a>
                                 <div style="margin-left: 0.5vw; text-align: left;">
-                                    <div class="name"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
-                                    <div class="username"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                    <div class="name"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
                                 </div>
                             </div>
                             <div class="actions">
@@ -55,10 +55,10 @@
                     {% for friend in requests %}
                         <div id="{{ friend['id'] }}" class="friend-box">
                             <div class="friend-info">
-                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <a href="/profile/{{ friend['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div></a>
                                 <div style="margin-left: 0.5vw; text-align: left;">
-                                    <div class="name"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
-                                    <div class="username"><a href="/profile?username={{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                    <div class="name"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
                                 </div>
                             </div>
                             <div class="actions">
@@ -74,18 +74,18 @@
             <div id="recom_tab" style="display: none">
                 <h3>Friend Recommendations</h3>
                 {% if recommendations %}
-                    {% for people in recommendations %}
-                        <div id="{{ people['id'] }}" class="friend-box">
+                    {% for person in recommendations %}
+                        <div id="{{ person['id'] }}" class="friend-box">
                             <div class="friend-info">
-                                <div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div>
+                                <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="/static/images/user_profile_pic.png"></div></a>
                                 <div style="margin-left: 0.5vw; text-align: left;">
-                                    <div class="name"><a href="/profile?username={{ people['username'] }}" style="text-decoration: none; color: inherit;">{{ people['fullname'] }}</a></div>
-                                    <div class="username"><a href="/profile?username={{ people['username'] }}" style="text-decoration: none; color: inherit;">@{{ people['username'] }}</a></div>
+                                    <div class="name"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">{{ person['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">@{{ person['username'] }}</a></div>
                                 </div>
                             </div>
                             <div class="actions">
-                                <button name="add_recommendation_button" class="action-button" value="{{ people['id'] }}" type="button"><img src="/static/images/add-friend.png"></button>
-                                <button name="remove_recommendation_button" class="action-button" value="{{ people['id'] }}" type="button"><img style="width: 85%; height: auto;" src="/static/images/cross-logo.png"></button>
+                                <button name="add_recommendation_button" class="action-button" value="{{ person['id'] }}" type="button"><img src="/static/images/add-friend.png"></button>
+                                <button name="remove_recommendation_button" class="action-button" value="{{ person['id'] }}" type="button"><img style="width: 85%; height: auto;" src="/static/images/cross-logo.png"></button>
                             </div>
                         </div>
                     {% endfor %}

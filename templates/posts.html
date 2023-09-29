@@ -117,13 +117,13 @@
                         <div class="post-box">
                             <div class="top-part">
                                 <div class="user-info">
-                                    <a href="/profile?username={{ post['username'] }}"><div class="profile-pic-post"><img src="/static/images/user_profile_pic.png"></div></a>
+                                    <a href="/profile/{{ post['username'] }}"><div class="profile-pic-post"><img src="/static/images/user_profile_pic.png"></div></a>
                                     <div style="margin-left: 0.5vw; text-align: left;">
-                                        <div class="name"><a href="/profile?username={{ post['username'] }}">{{ post["fullname"] }}</a></div>
-                                        <div class="username"><a href="/profile?username={{ post['username'] }}">@{{ post["username"] }}</a></div>
+                                        <div class="name"><a href="/profile/{{ post['username'] }}">{{ post["fullname"] }}</a></div>
+                                        <div class="username"><a href="/profile/{{ post['username'] }}">@{{ post["username"] }}</a></div>
                                     </div>
                                 </div>
-                                <div class="post-title"><a href="/post?id={{ post['id'] }}">{{ post["title"] }}</a></div>
+                                <div class="post-title"><a href="/post/{{ post['id'] }}">{{ post["title"] }}</a></div>
                                 <div class="post-timestamp">
                                     <div>{{ post['date'] }}</div>
                                     <div>{{ post['time'] }}</div>
@@ -163,7 +163,7 @@
                                             <img src="/static/images/dislike-uncolored.png">
                                         {% endif %}
                                     </button>
-                                    <a href="/post?id={{ post['id'] }}#comments"><button name="comment_button" value="{{ post['id'] }}" comment_count="{{ post['comments'] }}" class="action-button" type="button"><img src="/static/images/comments.png"></button></a>
+                                    <a href="/post/{{ post['id'] }}#comments"><button name="comment_button" value="{{ post['id'] }}" comment_count="{{ post['comments'] }}" class="action-button" type="button"><img src="/static/images/comments.png"></button></a>
                                     <button name="share_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/share.png"></button>
                                     <div class="warning" style="width: 40%; font-size: medium;"></div>
                                 </div>

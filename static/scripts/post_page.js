@@ -259,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
             user_info.style.marginLeft = '0%';
 
             let anchor1 = create_element('a');
-            let profile_url = '/profile?username=' + responseData.username;
+            let profile_url = '/profile' + responseData.username;
             anchor1.href = profile_url;
             anchor1.innerHTML = '<div class="profile-pic-comment"><img src="/static/images/user_profile_pic.png"></div>';
             user_info.appendChild(anchor1);

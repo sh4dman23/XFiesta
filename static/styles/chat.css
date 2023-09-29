@@ -91,6 +91,8 @@ a {
 .action-button {
     height: 1.5rem !important;
     width: 1.5rem !important;
+    margin-left: 2px;
+    margin-right: 2px;
 }
 
 .btn-big img {

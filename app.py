@@ -172,13 +172,14 @@ def check_username():
 
 
 # Profile Page
-@app.route("/profile")
+@app.route("/profile", defaults={"username": ""})
+@app.route("/profile/", defaults={"username": ""})
+@app.route("/profile/<username>")
 @login_required
-def profile():
-    username = request.args.get("username")
+def profile(username):
 
-    # No username found
-    if (not username or username.strip() == ""):
+    # No username
+    if (not username or username == ""):
         user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE id = ?;", session["user_id"])
 
         interests = db.execute(
@@ -189,17 +190,16 @@ def profile():
 
     else:
         user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE username = ?;", username)
-        if len(user) == 0:
+        if not user:
             abort(404)
         elif user[0]["id"] == session["user_id"]:
             return redirect("/profile")
 
         # Check for friend status
-        friends_status = False
         friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], user[0]["id"])
         if not friends:
             status = 0
-        if friends:
+        else:
             if friends[0]["friends"] not in [0, 1, 2, 3]:
                 abort(404)
             else:
@@ -346,16 +346,16 @@ def change_account():
         if not username or not password_old or not password_new or not password_new2 or password_new != password_new2:
             return apology("Invalid Submission!")
 
-        check = db.execute("SELECT * FROM users WHERE username = ?;", username)
+        check = db.execute("SELECT id FROM users WHERE username = ?;", username)
         if len(check) > 0 and check[0]["id"] != session["user_id"]:
             return apology("Username already exists!")
 
         user_prev = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
-        if not check_password_hash(user_prev[0]["hash"], password_new):
+        if not check_password_hash(user_prev[0]["hash"], password_old):
             return apology("Incorrect Password!")
 
         db.execute("UPDATE users SET username = ?, hash = ? WHERE id = ?;", username, generate_password_hash(password_new), session["user_id"])
-
+        return redirect("/profile")
     else:
         user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
         return render_template("change_account.html", username=user[0]["username"])
@@ -384,6 +384,8 @@ def friends():
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
 
 
+@app.route("/post", defaults={"post_id": ""})
+@app.route("/post/", defaults={"post_id": ""})
 @app.route("/post/<post_id>")
 @login_required
 def post(post_id):
@@ -607,8 +609,8 @@ def manage_likes():
 
 
 # Edit posts
-@app.route("/edit_post", defaults={'post_id': ''}, methods=["GET", "POST"])
-@app.route("/edit_post/", defaults={'post_id': ''}, methods=["GET", "POST"])
+@app.route("/edit_post", defaults={"post_id": ""}, methods=["GET", "POST"])
+@app.route("/edit_post/", defaults={"post_id": ""}, methods=["GET", "POST"])
 @app.route("/edit_post/<post_id>", methods=["GET", "POST"])
 def edit_post(post_id):
     if request.method == "POST":
@@ -933,8 +935,8 @@ def delete_comment():
 
 
 # Inbox Page
-@app.route("/inbox", defaults={'user_id': ''})
-@app.route("/inbox/", defaults={'user_id': ''})
+@app.route("/inbox", defaults={"user_id": ""})
+@app.route("/inbox/", defaults={"user_id": ""})
 @app.route("/inbox/<user_id>")
 @login_required
 def inbox(user_id):

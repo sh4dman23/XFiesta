@@ -17,10 +17,10 @@
                 <button class="action-button btn-big" type="button" onclick="history.back();"><img src="/static/images/back.png"></button>
             </div>
             <div class="top-bar">
-                <div class="profile-pic" style="width: 35px; height: 35px;"><img src="/static/images/user_profile_pic.png"></div>
+                <a href="/profile/{{ user['username'] }}"><div class="profile-pic" style="width: 35px; height: 35px;"><img src="/static/images/user_profile_pic.png"></div></a>
                 <div style="margin-left: 0.5vw; text-align: left;">
-                    <div class="name"><a href="/profile?username={{ user['username'] }}" style="text-decoration: none; color: inherit;">{{ user['fullname'] }}</a></div>
-                    <div class="username"><a href="/profile?username={{ user['username'] }}" style="text-decoration: none; color: inherit;">@{{ user['username'] }}</a></div>
+                    <div class="name"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">{{ user['fullname'] }}</a></div>
+                    <div class="username"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">@{{ user['username'] }}</a></div>
                 </div>
             </div>
         </div>
@@ -28,7 +28,7 @@
             {% for message in messages %}
                 <div name="message" id="{{ message['id'] }}" class="message-container">
                     <div class="top-part">
-                        <div class="name" style="margin-right: 10px;"><a tabindex="-1" href="/profile?username={{ message['sender_username'] }}">{{ message["sender_username"] }}</a></div>
+                        <div class="name" style="margin-right: 10px;"><a tabindex="-1" href="/profile/{{ message['sender_username'] }}">{{ message["sender_username"] }}</a></div>
                         <div class="name" style="font-weight: normal; margin-right: auto;">
                             {{ message["time"] }} {{ message["date"] }}
                         </div>
