@@ -128,6 +128,8 @@ def login():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    if session and session["user_id"]:
+        return redirect("/profile")
     if request.method == "POST":
         username = request.form.get("username")
         fullname = request.form.get("name")
@@ -158,17 +160,18 @@ def logout():
 
 
 # Check username via AJAX request
-@app.route("/check_username", methods=["GET", "POST"])
+@app.route("/api/check_username", methods=["POST"])
 def check_username():
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        username = request.form.get("username")
-        users = db.execute("SELECT * FROM users WHERE username = ?;", username)
-        if len(users) > 0:
-            return jsonify({"result": False})
-        else:
-            return jsonify({"result": True})
-    else:
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
         abort(404)
+    username = request.form.get("username")
+    users = db.execute("SELECT * FROM users WHERE username = ?;", username)
+    # Username already exists
+    if len(users) > 0:
+        return jsonify({"result": False})
+    # Username is free to use
+    else:
+        return jsonify({"result": True})
 
 
 # Profile Page
@@ -180,7 +183,7 @@ def profile(username):
 
     # No username
     if (not username or username == ""):
-        user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE id = ?;", session["user_id"])
+        user = db.execute("SELECT id, username, fullname, about_me, pfp_location, friends, posts, carnival, creation_time FROM users WHERE id = ?;", session["user_id"])
 
         interests = db.execute(
                 "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
@@ -189,7 +192,7 @@ def profile(username):
         return render_template("user_profile.html", user=user[0], interests=interests)
 
     else:
-        user = db.execute("SELECT id, username, fullname, about_me, friends, posts, carnival, creation_time FROM users WHERE username = ?;", username)
+        user = db.execute("SELECT id, username, fullname, about_me, pfp_location, friends, posts, carnival, creation_time FROM users WHERE username = ?;", username)
         if not user:
             abort(404)
         elif user[0]["id"] == session["user_id"]:
@@ -213,78 +216,78 @@ def profile(username):
 
 
 # Update friends status via AJAX (Only handles friend requests, request declination and friend removal). DOES NOT HANDLE ACCEPT REQUESTS!
-@app.route("/manage_friends", methods=["GET", "POST"])
+@app.route("/api/manage_friends", methods=["POST"])
 @login_required
 def manage_friends():
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        id = request.form.get("user_id")
-        if not id or not id.isdigit() or id == session["user_id"]:
-            abort(404)
-
-        id = int(id)
-        try:
-            db.execute("BEGIN TRANSACTION;")
-            friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-            if not friends:
-                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
-                db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
-                db.execute("COMMIT;")
-                return jsonify({"result": "Request Sent"}), 200
-            elif friends[0]["friends"] == 0:
-                db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-                db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-                db.execute("COMMIT;")
-                return jsonify({"result": "Request Sent"}), 200
-            else:
-                db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-                db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-                db.execute("DELETE FROM friends WHERE friends = 0;")
-
-                if friends[0]["friends"] == 1:
-                    db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
-
-                db.execute("COMMIT;")
-                return jsonify({"result": "Removed Friend"}), 200
-        except Exception as e:
-            db.execute("ROLLBACK;")
-            return apology("Friend could not be added/removed!")
-    else:
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
         abort(404)
+
+    id = request.form.get("user_id")
+
+    if not id or not id.isdigit() or id == session["user_id"]:
+        return jsonify({"result": "Failed"})
+
+    id = int(id)
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+        if not friends:
+            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
+            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
+            db.execute("COMMIT;")
+            return jsonify({"result": "Request Sent"}), 200
+        elif friends[0]["friends"] == 0:
+            db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+            db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+            db.execute("COMMIT;")
+            return jsonify({"result": "Request Sent"}), 200
+        else:
+            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+            db.execute("DELETE FROM friends WHERE friends = 0;")
+
+            if friends[0]["friends"] == 1:
+                db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+
+            db.execute("COMMIT;")
+            return jsonify({"result": "Removed Friend"}), 200
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        return jsonify({"result": "Failed"}), 400
 
 
 # Handles Accept Requests
-@app.route("/accept_friend_request", methods=["GET", "POST"])
+@app.route("/api/accept_friend_request", methods=["POST"])
 def accept_friend_request():
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        friend_id = request.form.get("user_id")
-        if not friend_id or friend_id == session["user_id"]:
-            abort(404)
-
-        friend_id = int(friend_id)
-
-        try:
-            db.execute("BEGIN TRANSACTION;")
-
-            # Check for validity of request
-            status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
-            if not status or status[0]["friends"] != 3:
-                db.execute("ROLLBACK;")
-                return jsonify({"result": False})
-
-            db.execute(
-                "UPDATE friends SET friends = 1 WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);"
-                , session["user_id"], friend_id, friend_id, session["user_id"]
-            )
-            db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
-            db.execute("COMMIT;")
-            return jsonify({"result": True})
-
-        except Exception as e:
-            db.execute("ROLLBACK;")
-            return jsonify({"result": False})
-
-    else:
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
         abort(404)
+
+    friend_id = request.form.get("user_id")
+    if not friend_id or friend_id == session["user_id"]:
+        return jsonify({"result": False}), 400
+
+    friend_id = int(friend_id)
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Check for validity of request
+        status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
+        if not status or status[0]["friends"] != 3:
+            db.execute("ROLLBACK;")
+            return jsonify({"result": False}), 400
+
+        db.execute(
+            "UPDATE friends SET friends = 1 WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);"
+            , session["user_id"], friend_id, friend_id, session["user_id"]
+        )
+        db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
+        db.execute("COMMIT;")
+        return jsonify({"result": True}), 200
+
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        return jsonify({"result": False}), 400
 
 
 # Manage Profile Settings
@@ -292,30 +295,83 @@ def accept_friend_request():
 @login_required
 def profile_settings():
     if request.method == "POST":
+        pfp = request.files["profile_pic"]
         fullname = request.form.get("name")
         about_me = request.form.get("about_me")
         interest_list = request.form.getlist("interest")
 
+        if pfp and pfp != "":
+                # Sanitize and validate input
+                pfp.filename = secure_filename(pfp.filename).lower()
+                if not pfp.filename.endswith(".png") and not pfp.filename.endswith(".jfif") and not pfp.filename.endswith(".pjp") and not pfp.filename.endswith(".jpg") and not pfp.filename.endswith(".jpeg") and not pfp.filename.endswith(".pjpeg"):
+                    raise Exception("Invalid Image Format!")
+
         if not fullname or len(fullname) > 70 or len(about_me) > 640:
             return apology("Invalid Submission!")
 
-        db.execute("UPDATE users SET fullname = ?, about_me = ? WHERE id = ?;", fullname, about_me, session["user_id"])
-        db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
-
-        if interest_list:
+        try:
             db.execute("BEGIN TRANSACTION;")
-            for interest in interest_list:
-                if interest in list_of_interests:
-                    interest_id = db.execute("SELECT id FROM interests WHERE interest = ?;", interest)
-                    db.execute("INSERT INTO user_interests(user_id, interest_id) VALUES(?, ?);", session["user_id"], interest_id[0]["id"])
+            prev_pfp = db.execute("SELECT pfp_location FROM users WHERE id = ?;", session["user_id"])
+            # If the user had a pfp before
+            if prev_pfp[0]["pfp_location"]:
+                # First delete previous pfp (if it is not the default one)
+                if os.path.exists(prev_pfp[0]["pfp_location"]) and prev_pfp[0]["pfp_location"] != "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png":
+                    try:
+                        os.remove(prev_pfp[0]["pfp_location"])
+                    except OSError:
+                        pass
+
+                # Update if new
+                if pfp:
+                    dir = os.path.dirname(prev_pfp[0]["pfp_location"])
+                    if dir == os.path.join("server_hosted_files", "profile_pics", "default_profile_pic"):
+                        dir = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
+                        if not os.path.exists(dir):
+                            try:
+                                os.makedirs(dir)
+                            except OSError:
+                                raise Exception("Could not make directory for pfp!")
+
+                    pfp_location = os.path.join(dir, str(pfp.filename))
+                    pfp.save(pfp_location)
+                # Reset to default
                 else:
-                    db.execute("ROLLBACK;")
-                    return apology("Invalid Submission!")
+                    pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
+            else:
+                # If uploaded, save else no change
+                if pfp:
+                    pfp_location = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
+                    if not os.path.exists(pfp_location):
+                        try:
+                            os.makedirs(pfp_location)
+                        except OSError:
+                            raise Exception("Could not make directory for pfp!")
+                    pfp_location = os.path.join(pfp_location, str(pfp.filename))
+                    pfp.save(pfp_location)
+                else:
+                    pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
+
+
+            db.execute("UPDATE users SET fullname = ?, about_me = ?, pfp_location = ? WHERE id = ?;", fullname, about_me, pfp_location, session["user_id"])
+            db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+            if interest_list:
+                for interest in interest_list:
+                    if interest in list_of_interests:
+                        interest_id = db.execute("SELECT id FROM interests WHERE interest = ?;", interest)
+                        db.execute("INSERT INTO user_interests(user_id, interest_id) VALUES(?, ?);", session["user_id"], interest_id[0]["id"])
+                    else:
+                        raise Exception("Invalid tags")
+
             db.execute("COMMIT;")
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(e)
+            return apology("Invalid Submission!")
 
         return redirect("/profile")
     else:
-        user = db.execute("SELECT fullname, about_me FROM users WHERE id = ?;", session["user_id"])
+        user = db.execute("SELECT fullname, about_me, pfp_location FROM users WHERE id = ?;", session["user_id"])
         interests = db.execute(
             "SELECT interests.interest AS interest FROM interests JOIN user_interests ON user_interests.interest_id = interests.id WHERE user_interests.user_id = ? ORDER BY interests.interest;",
             session["user_id"]
@@ -365,12 +421,12 @@ def change_account():
 @app.route("/friends")
 @login_required
 def friends():
-    friends = db.execute("SELECT DISTINCT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
-    requests = db.execute("SELECT DISTINCT id, username, fullname FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 3);", session["user_id"])
+    friends = db.execute("SELECT DISTINCT id, username, fullname, pfp_location FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+    requests = db.execute("SELECT DISTINCT id, username, fullname, pfp_location FROM users WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 3);", session["user_id"])
     recommendations = db.execute(
         """
-        SELECT DISTINCT u.id AS id, u.username AS username, u.fullname AS fullname
-        FROM users u
+        SELECT DISTINCT u.id AS id, u.username AS username, u.fullname AS fullname, u.pfp_location AS pfp_location
+        FROM users AS u
         JOIN user_interests ui ON u.id = ui.user_id
         WHERE ui.interest_id IN (SELECT interest_id FROM user_interests WHERE user_id = ?)
         AND u.id != ?
@@ -403,9 +459,10 @@ def post(post_id):
 
     # Check post ownership and get post owner info
     post["owner"] = True if post["user_id"] == session["user_id"] else False
-    user = db.execute("SELECT fullname, username FROM users WHERE id = (SELECT user_id FROM posts WHERE id = ?)", post_id)
+    user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = (SELECT user_id FROM posts WHERE id = ?)", post_id)
     post["fullname"] = user[0]["fullname"]
     post["username"] = user[0]["username"]
+    post["pfp_location"] = user[0]["pfp_location"]
 
     # Get post interaction status
     status = db.execute("SELECT status FROM user_post_interactions WHERE user_id = ? AND post_id = ?;", session["user_id"], post_id)
@@ -418,9 +475,10 @@ def post(post_id):
         for comment in comments:
             comment["owner"] = True if comment["user_id"] == session["user_id"] else False
 
-            user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", comment["user_id"])
+            user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", comment["user_id"])
             comment["fullname"] = user[0]["fullname"]
             comment["username"] = user[0]["username"]
+            comment["pfp_location"] = user[0]["pfp_location"]
 
             status = db.execute("SELECT status FROM user_comment_interactions WHERE comment_id = ? AND user_id = ?;", comment["id"], session["user_id"])
             comment["status"] = status[0]["status"] if status else 0
@@ -445,14 +503,15 @@ def posts():
         interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
         post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
 
-    user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+    user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", session["user_id"])
 
     # Get user's friends' posts
     friend_posts = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE user_id IN (SELECT user_id2 FROM friends WHERE user_id1 = ?) ORDER BY post_time DESC;", session["user_id"])
     for post in friend_posts:
-        info = db.execute("SELECT fullname, username FROM users WHERE id = ?;", post["user_id"])
+        info = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", post["user_id"])
         post["fullname"] = info[0]["fullname"]
         post["username"] = info[0]["username"]
+        post["pfp_location"] = info[0]["pfp_location"]
 
         tag_list2 = list()
         tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
@@ -464,7 +523,7 @@ def posts():
         interaction_status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
         post["status"] = 0 if not interaction_status else interaction_status[0]["status"]
 
-    return render_template("posts.html", my_posts=my_posts, my_name=user[0]["fullname"], my_username=user[0]["username"], friend_posts=friend_posts)
+    return render_template("posts.html", my_posts=my_posts, my_name=user[0]["fullname"], my_username=user[0]["username"], my_pfp = user[0]["pfp_location"], friend_posts=friend_posts)
 
 
 # Allows users to create posts
@@ -524,88 +583,6 @@ def createpost():
         return redirect("/posts")
     else:
         return render_template("create_a_post.html", list_of_tags=list_of_interests)
-
-
-# Manage post likes/dislikes
-@app.route("/manage_likes", methods=["GET", "POST"])
-@login_required
-def manage_likes():
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        post_id = request.form.get("post_id")
-        action = request.form.get("action")
-
-        # Verify
-        if not post_id or post_id == "" or not action or action not in ["like", "dislike"]:
-            return jsonify({"result": False}), 400
-
-        # Update
-        try:
-            db.execute("BEGIN TRANSACTION;")
-            status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-
-            # AJAX request from like manager
-            if action == "like":
-                if status:
-                    # Like post
-                    if status[0]["status"] == 0:
-                        db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                    # Remove like status (unlike)
-                    elif status[0]["status"] == 1:
-                        db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                    # Disliked previously, now wants to like => Remove dislike(+1) and then like(+1)
-                    elif status[0]["status"] == 2:
-                        db.execute("UPDATE posts SET likes = likes + 2 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival + 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                # Status is considered 0 (no interaction) and hence, like post
-                else:
-                    db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
-                    db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(1, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
-                    db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-            # AJAX request from dislike manager
-            else:
-                if status:
-                    # Dislike post
-                    if status[0]["status"] == 0:
-                        db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 2, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                    # Remove dislike status
-                    elif status[0]["status"] == 2:
-                        db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                    # Liked previously, now wants to dislike => Remove like(-1) and then dislike(-1)
-                    elif status[0]["status"] == 1:
-                        db.execute("UPDATE posts SET likes = likes - 2 WHERE id = ?;", post_id)
-                        db.execute("UPDATE user_post_interactions SET status = 2 WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
-                        db.execute("UPDATE users SET carnival = carnival - 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-                # Status is considered 0 (no interaction) and hence, dislike post
-                else:
-                    db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
-                    db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(2, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
-                    db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
-
-            db.execute("COMMIT;")
-            return jsonify({"result": True}), 200
-
-        except Exception as e:
-            db.execute("ROLLBACK;")
-            logging.error(f"An error occurred: {str(e)}")
-            return jsonify({"result": False}), 400
-    else:
-        abort(404)
 
 
 # Edit posts
@@ -731,60 +708,143 @@ def edit_post(post_id):
 
         return render_template("edit_post.html", post=post[0], list_of_tags=list_of_interests)
 
+
+# Manage post likes/dislikes
+@app.route("/api/manage_likes", methods=["POST"])
+@login_required
+def manage_likes():
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        abort(404)
+
+    post_id = request.form.get("post_id")
+    action = request.form.get("action")
+
+    # Verify
+    if not post_id or post_id == "" or not action or action not in ["like", "dislike"]:
+        return jsonify({"result": False}), 400
+
+    # Update
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+
+        # AJAX request from like manager
+        if action == "like":
+            if status:
+                # Like post
+                if status[0]["status"] == 0:
+                    db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Remove like status (unlike)
+                elif status[0]["status"] == 1:
+                    db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Disliked previously, now wants to like => Remove dislike(+1) and then like(+1)
+                elif status[0]["status"] == 2:
+                    db.execute("UPDATE posts SET likes = likes + 2 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival + 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+            # Status is considered 0 (no interaction) and hence, like post
+            else:
+                db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(1, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
+                db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+        # AJAX request from dislike manager
+        else:
+            if status:
+                # Dislike post
+                if status[0]["status"] == 0:
+                    db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 2, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Remove dislike status
+                elif status[0]["status"] == 2:
+                    db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+                # Liked previously, now wants to dislike => Remove like(-1) and then dislike(-1)
+                elif status[0]["status"] == 1:
+                    db.execute("UPDATE posts SET likes = likes - 2 WHERE id = ?;", post_id)
+                    db.execute("UPDATE user_post_interactions SET status = 2 WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
+                    db.execute("UPDATE users SET carnival = carnival - 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+            # Status is considered 0 (no interaction) and hence, dislike post
+            else:
+                db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
+                db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(2, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
+                db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+
+        db.execute("COMMIT;")
+        return jsonify({"result": True}), 200
+
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"An error occurred: {str(e)}")
+        return jsonify({"result": False}), 400
+
+
 # Delete posts (via AJAX)
-@app.route("/delete_post", methods=["GET", "POST"])
+@app.route("/api/delete_post", methods=["POST"])
 @login_required
 def delete_post():
-    if request.method == "POST" and request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        post_id = request.form.get("post_id")
-        if not post_id or post_id == "":
-            return jsonify({"result": False})
-        user_id = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
-
-        if user_id[0]["user_id"] != session["user_id"]:
-            return jsonify({"result": False})
-
-        try:
-            db.execute("BEGIN TRANSACTION;")
-
-            # Decrease post count and remove points gained by user's own like. Interactions by others remain unchanged
-            comment_count = db.execute("SELECT COUNT(id) AS count FROM comments WHERE post_id = ?;", post_id)
-            db.execute("UPDATE users SET posts = posts - 1, carnival = carnival - (2 + ?) WHERE id = ?;", comment_count[0]["count"], session["user_id"])
-
-            # Delete tags
-            db.execute("DELETE FROM post_tags WHERE post_id = ?;", post_id)
-
-            # Delete user-post interaction status
-            db.execute("DELETE FROM user_post_interactions WHERE post_id = ?;", post_id)
-
-            # Delete all user-comment interactions and comments
-            db.execute("DELETE FROM user_comment_interactions WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?);", post_id)
-            db.execute("DELETE FROM comments WHERE post_id = ?;", post_id)
-
-            # Delete server hosted file
-            image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
-            if image[0]["imagelocation"]:
-                try:
-                    # Remove image
-                    os.remove(image[0]["imagelocation"])
-                    directory = os.path.dirname(image[0]["imagelocation"])
-
-                    # Remove folder (if empty)
-                    if os.path.exists(directory) and not os.listdir(directory):
-                        os.removedirs(directory)
-                except OSError:
-                    pass
-
-            # Delete post data
-            db.execute("DELETE FROM posts WHERE id = ?;", post_id)
-            db.execute("COMMIT;")
-            return jsonify({"result": True})
-        except Exception as e:
-            db.execute("ROLLBACK;")
-            logging.error(f"An error occurred: {str(e)}")
-            return jsonify({"result": False})
-    else:
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
         abort(404)
+
+    post_id = request.form.get("post_id")
+    if not post_id or post_id == "":
+        return jsonify({"result": False})
+    user_id = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
+
+    if user_id[0]["user_id"] != session["user_id"]:
+        return jsonify({"result": False})
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Decrease post count and remove points gained by user's own like. Interactions by others remain unchanged
+        comment_count = db.execute("SELECT COUNT(id) AS count FROM comments WHERE post_id = ?;", post_id)
+        db.execute("UPDATE users SET posts = posts - 1, carnival = carnival - (2 + ?) WHERE id = ?;", comment_count[0]["count"], session["user_id"])
+
+        # Delete tags
+        db.execute("DELETE FROM post_tags WHERE post_id = ?;", post_id)
+
+        # Delete user-post interaction status
+        db.execute("DELETE FROM user_post_interactions WHERE post_id = ?;", post_id)
+
+        # Delete all user-comment interactions and comments
+        db.execute("DELETE FROM user_comment_interactions WHERE comment_id IN (SELECT id FROM comments WHERE post_id = ?);", post_id)
+        db.execute("DELETE FROM comments WHERE post_id = ?;", post_id)
+
+        # Delete server hosted file
+        image = db.execute("SELECT imagelocation FROM posts WHERE id = ?;", post_id)
+        if image[0]["imagelocation"]:
+            try:
+                # Remove image
+                os.remove(image[0]["imagelocation"])
+                directory = os.path.dirname(image[0]["imagelocation"])
+
+                # Remove folder (if empty)
+                if os.path.exists(directory) and not os.listdir(directory):
+                    os.removedirs(directory)
+            except OSError:
+                pass
+
+        # Delete post data
+        db.execute("DELETE FROM posts WHERE id = ?;", post_id)
+        db.execute("COMMIT;")
+        return jsonify({"result": True})
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        logging.error(f"An error occurred: {str(e)}")
+        return jsonify({"result": False})
 
 
 # Manage comment submissions
@@ -811,7 +871,7 @@ def add_comment():
         logging.error(f"Error: {e}")
         return jsonify({"result": False}), 400
 
-    user = db.execute("SELECT fullname, username FROM users WHERE id = ?;", session["user_id"])
+    user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", session["user_id"])
 
     # Give back sanitized comment
     comment = db.execute("SELECT contents FROM comments WHERE id = ?;", comment_id)
@@ -821,6 +881,7 @@ def add_comment():
         "comment_contents": escape(comment[0]["contents"]),
         "fullname": user[0]["fullname"],
         "username": user[0]["username"],
+        "pfp_location": user[0]["pfp_location"],
         "date": info[0]["date"],
         "time": info[0]["time"],
     }
@@ -942,16 +1003,31 @@ def delete_comment():
 def inbox(user_id):
     # Default Page
     if not user_id or user_id == '':
-        inbox = db.execute("SELECT * FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+        inbox = db.execute(
+            """
+            SELECT DISTINCT i.id, i.user_id1, i.user_id2, i.messages
+            FROM inbox AS i
+            JOIN messages AS m
+            ON i.id = m.inbox_id
+            WHERE i.user_id1 = ? OR i.user_id2 = ?
+            ORDER BY (
+                SELECT MAX(message_time)
+                FROM messages AS m2
+                WHERE m2.inbox_id = i.id)
+            DESC;
+            """,
+            session["user_id"], session["user_id"]
+        )
         for chat in inbox:
             if chat["user_id1"] == session["user_id"]:
                 person_id = chat["user_id2"]
             else:
                 person_id = chat["user_id1"]
-            person = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", person_id)
+            person = db.execute("SELECT id, fullname, username, pfp_location FROM users WHERE id = ?;", person_id)
             chat["user_id"] = person[0]["id"]
             chat["fullname"] = person[0]["fullname"]
             chat["username"] = person[0]["username"]
+            chat["pfp_location"] = person[0]["pfp_location"]
 
             message = db.execute("SELECT contents FROM messages WHERE inbox_id = ? ORDER BY message_time DESC LIMIT 1;", chat["id"])
             if message:
@@ -962,7 +1038,7 @@ def inbox(user_id):
     # Messages page
     else:
         # Get user info
-        user = db.execute("SELECT id, username, fullname FROM users WHERE id = ?;", user_id)
+        user = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", user_id)
         inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], user_id, user_id, session["user_id"])
         if len(user) != 1:
             return redirect("/inbox")
@@ -1216,13 +1292,13 @@ def search_q():
     if data["target"] == "users":
         # Search through all
         if data["option"] == "users_all":
-            users = db.execute("SELECT DISTINCT id, fullname, username FROM users WHERE username LIKE ? OR fullname LIKE ? ORDER BY username, fullname;", "%" + data["query"] + "%", "%" + data["query"] + "%")
+            users = db.execute("SELECT DISTINCT id, fullname, username, pfp_location FROM users WHERE username LIKE ? OR fullname LIKE ? ORDER BY username, fullname;", "%" + data["query"] + "%", "%" + data["query"] + "%")
 
         # Search through friends
         elif data["option"] == "users_friends":
            users = db.execute(
                """
-               SELECT DISTINCT users.id, users.fullname, users.username
+               SELECT DISTINCT users.id, users.fullname, users.username, users.pfp_location
                FROM users
                JOIN friends
                ON ((users.id = friends.user_id1 AND friends.user_id2 = ?) OR (users.id = friends.user_id2 AND friends.user_id1 = ?))
@@ -1351,6 +1427,16 @@ def remove_account():
 
                 # Delete all user interests
                 db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+                # Delete user pfp
+                pfp = db.execute("SELECT pfp_location FROM users WHERE user_id = ?;", session["user_id"])
+                if pfp and pfp[0]["pfp_location"] != 'server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png':
+                    try:
+                        os.remove(pfp[0]["pfp_location"])
+                        pfp_dir = os.path.dirname(pfp[0]["pfp_location"])
+                        os.removedirs(pfp_dir)
+                    except OSError:
+                        pass
 
                 # Delete remaining user data
                 db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])

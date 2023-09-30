@@ -11,7 +11,7 @@
 
 {% block main %}
     <div class="container-main o-profile">
-        <div class="profile-pic"><img src="/static/images/user_profile_pic.png"></div>
+        <div class="profile-pic"><img src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div>
         <div class="fullname">
             <div class="p-header">{{ user["fullname"] }}</div>
         </div>
@@ -38,6 +38,7 @@
         </div>
         <form>
             <button class="btn btn-primary btn-prof" type="button" id="manage_friend"></button>
+            <a href="/inbox/{{ user['id'] }}"><button class="btn btn-primary btn-prof" type="button" id="message">Message</button></a>
             <button class="btn btn-primary btn-prof" type="button" id="share_account">Share Account</button>
         </form>
         <div id="status1" style="color: green;"></div>
@@ -53,8 +54,8 @@
             {% endif %}
         </div>
         {% if interests %}
+            <div class="p-header">Interests</div>
             <div class="interests">
-                <div class="p-header">Interests</div>
                 {% for interest in interests %}
                     <span class="interest">#{{ interest["interest"] }}</span>
                 {% endfor %}

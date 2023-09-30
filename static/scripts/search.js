@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const infoDiv = create_element('div', 'user-info');
         const pfpDiv = create_element('div', 'profile-pic');
 
-        pfpDiv.innerHTML = '<img src="/static/images/user_profile_pic.png">';
+        pfpDiv.innerHTML = '<img src="/' + result.pfp_location + '">';
         infoDiv.appendChild(pfpDiv);
 
         const nameDiv = create_element('div');
@@ -227,8 +227,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 'query': search_bar.value
             };
 
-            console.log(sTarget, sOption);
-
             let results = document.querySelectorAll('.search_result');
             for (let result of results) {
                 result.remove();
@@ -253,7 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
             no_results.style.display = 'none';
 
             const responseData = await response.json();
-            console.log(responseData);
 
             if (!responseData.result) {
                 throw new Error('Error processing data!');
@@ -266,7 +263,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (responseData.target == 'users') {
                 for (let result of responseData.search_results) {
-                    console.log(result);
                     add_user_result(result);
                 }
             } else {

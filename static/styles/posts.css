@@ -74,25 +74,9 @@
     align-items: center;
 }
 
-.profile-pic-post {
-    width: 2.5rem !important;
-    height: 2.5rem !important;
-    border: 2px solid transparent !important;
-    border-radius: 50%;
-    background-color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-    background-color: #f0f0f0;
-}
-
-.profile-pic-post img {
-    height: 100%;
-    width: auto;
-    object-fit: cover;
-    -webkit-user-drag: none;
-    user-select: none;
+.profile-pic {
+    width: 2.5rem;
+    height: 2.5rem;
 }
 
 .post-title {

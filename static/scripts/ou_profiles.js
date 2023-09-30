@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 3000);
                 }
             }
-            aj.open("POST", "/manage_friends", true);
+            aj.open("POST", "/api/manage_friends", true);
             aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             aj.send("user_id=" + user_id);
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }, 3000);
                 }
             };
-            aj.open("POST", "/accept_friend_request", true);
+            aj.open("POST", "/api/accept_friend_request", true);
             aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             aj.send("user_id=" + user_id);

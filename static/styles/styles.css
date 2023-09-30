@@ -44,6 +44,10 @@ textarea {
     transform: translateY(2px);
 }
 
+.btn:focus {
+    color: blue;
+}
+
 .btn:disabled {
     background-color: lightblue !important;
     color: black !important;
@@ -55,6 +59,8 @@ button:disabled, button:disabled:hover, button:disabled:active {
 }
 
 button img {
+    -webkit-user-drag: none;
+    user-select: none;
     pointer-events: none;
 }
 
@@ -123,10 +129,12 @@ input[type="text"], input[type="password"], textarea, .line-form, .textbox-area,
 .profile-pic {
     width: 125px;
     height: 125px;
-    border: 2px solid white;
+    border: 2px solid transparent;
     border-radius: 50%;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
     background-color: #f0f0f0;
+    pointer-events: none;
+    overflow: hidden;
 }
 
 .profile-pic img {
@@ -135,23 +143,14 @@ input[type="text"], input[type="password"], textarea, .line-form, .textbox-area,
     object-fit: cover;
     -webkit-user-drag: none;
     user-select: none;
+    image-rendering: optimizeQuality;
 }
 
 .btn-prof {
     background-color: #b7c9e2 !important;
+    margin-top: 5px;
+    margin-bottom: 5px;
     color: black !important;
-}
-
-.line-form {
-    border: none !important;
-    background: transparent !important;
-    outline: none !important;
-    border-bottom: 2px solid black !important;
-}
-
-.line-form:focus {
-    box-shadow: none !important;
-    outline: none !important;
 }
 
 
@@ -174,7 +173,9 @@ label {
 
 .centered {
     display: flex;
+    flex-direction: column;
     justify-content: center;
+    align-items: center;
 }
 
 textarea {
@@ -188,6 +189,7 @@ textarea {
     .navbar-collapse {
         background-color: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(2px);
+        z-index: 999; /* Make it have the highest z-index */
         pointer-events: none;
     }
     .navbar-collapse * {
@@ -204,7 +206,8 @@ textarea {
         width: 70vw !important;
     }
 
-    #about_me {
-        width: 70vw !important;
+    .about-me {
+        word-wrap: break-word;
+        width: 100% !important;
     }
 }

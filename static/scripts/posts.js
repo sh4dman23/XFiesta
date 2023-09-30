@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
 
-            aj.open("POST", "/manage_likes", true);
+            aj.open("POST", "/api/manage_likes", true);
             aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             aj.send("post_id=" + post_id + "&action=" + "like");
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
 
-            aj.open("POST", "/manage_likes", true);
+            aj.open("POST", "/api/manage_likes", true);
             aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
             aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
             aj.send("post_id=" + post_id + "&action=" + "dislike");
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
 
-                aj.open("POST", "/delete_post", true);
+                aj.open("POST", "/api/delete_post", true);
                 aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                 aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
                 aj.send("post_id=" + post_id);

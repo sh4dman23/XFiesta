@@ -20,6 +20,8 @@
 
 .interest {
     background-color: #6aaecc;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
     padding: 5px;
     border: 2px solid transparent;
     border-radius: 10px;

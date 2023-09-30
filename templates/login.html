@@ -1,16 +1,23 @@
 {% extends "layout.html" %}
 
+{% block optional_c %}
+    <link rel="stylesheet" href="/static/styles/cred.css">
+{% endblock %}
+
 {% block title %}
     Login
 {% endblock %}
 
 {% block main %}
-    <div class="container-main x-form">
+    <div class="container-main o-profile">
+        <h3>Login</h3>
         <form action="/login" method="post">
             <div class="mb-3">
+                <label class="form-label">Username</label>
                 <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" required placeholder="Username" type="text">
             </div>
             <div class="mb-3">
+                <label class="form-label">Password</label>
                 <input class="form-control mx-auto w-auto" id="password" name="password" required placeholder="Password" type="password">
             </div>
             <div>

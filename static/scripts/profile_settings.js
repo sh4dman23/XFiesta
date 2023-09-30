@@ -20,8 +20,29 @@ document.addEventListener('DOMContentLoaded', function() {
         interestList.appendChild(label);
     }
 
-    let interestInput = document.getElementById("interestInput");
-    let interestList = document.getElementById("interestList");
+    const preview = document.getElementById('preview');
+    const image = document.getElementById('image_input');
+
+    image.onchange = function() {
+        if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
+            const reader = new FileReader();
+            reader.onload = function() {
+                preview.src = reader.result;
+            };
+            reader.readAsDataURL(image_input.files[0]);
+        } else if (!image.value || image.value == "") {
+            image.value = null;
+        } else {
+            image.value = null;
+            document.getElementById('warning0').innerHTML = "Supported image formats are PNG/JPG!";
+            setTimeout(function() {
+                document.getElementById('warning0').innerHTML = "";
+            }, 3000);
+        }
+    };
+
+    const interestInput = document.getElementById("interestInput");
+    const interestList = document.getElementById("interestList");
 
     interestInput.addEventListener("keyup", function (event) {
         if (event.key === " " && interestInput.value.trim() !== "") {

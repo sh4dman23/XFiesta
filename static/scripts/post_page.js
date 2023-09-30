@@ -89,7 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        aj.open("POST", "/manage_likes", true);
+        aj.open("POST", "/api/manage_likes", true);
         aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         aj.send("post_id=" + post_id + "&action=" + "like");
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         };
 
-        aj.open("POST", "/manage_likes", true);
+        aj.open("POST", "/api/manage_likes", true);
         aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
         aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
         aj.send("post_id=" + post_id + "&action=" + "dislike");
@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 };
 
-                aj.open("POST", "/delete_post", true);
+                aj.open("POST", "/api/delete_post", true);
                 aj.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                 aj.setRequestHeader("X-Requested-With", "XMLHttpRequest");
                 aj.send("post_id=" + post_id);
@@ -259,9 +259,9 @@ document.addEventListener('DOMContentLoaded', function() {
             user_info.style.marginLeft = '0%';
 
             let anchor1 = create_element('a');
-            let profile_url = '/profile' + responseData.username;
+            let profile_url = '/profile/' + responseData.username;
             anchor1.href = profile_url;
-            anchor1.innerHTML = '<div class="profile-pic-comment"><img src="/static/images/user_profile_pic.png"></div>';
+            anchor1.innerHTML = '<div class="profile-pic"><img src="/' + responseData.pfp_location + '"></div>';
             user_info.appendChild(anchor1);
 
             let nameDiv = create_element('div', null, 'names');

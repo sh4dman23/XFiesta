@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
+    <link rel="stylesheet" href="/static/styles/profile_settings.css">
     <script src="/static/scripts/profile_settings.js"></script>
 {% endblock %}
 
@@ -11,15 +12,23 @@
 {% block main %}
     <div class="container-main o-profile" style="display: block;">
         <h1 style="margin-bottom: 5vh;">Profile Settings</h1>
-        <form action="/profile_settings" method="post">
+        <form action="/profile_settings" method="post" enctype="multipart/form-data">
+            <img id="preview" class="profile-pic" style="margin-bottom: 10px;" src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}">
             <div class="mb-3">
-                <input autocomplete="off" class="form-control mx-auto w-auto line-form" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">
+                <label class="form-label">Change Profile Picture</label>
+                <input name="profile_pic" id="image_input" class="form-control profile_pic_upload" type="file" accept="image/png, image/jpeg">
+                <div id="warning0" style="color: red;"></div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Change Name</label>
+                <input autocomplete="off" class="form-control mx-auto w-auto" type="text" required value="{{ user['fullname'] }}" placeholder="Name" minlength="1" maxlength="70" name="name">
             </div>
             <div class="mb-3 centered">
-                <textarea id="about_me" name="about_me" class="form-control textbox-area line-form" placeholder="About Me" maxlength="640" rows="5">{% if user['about_me'] %}{{ user['about_me'] }}{% else %}{% endif %}</textarea>
+                <label class="form-label">Change About Me</label>
+                <textarea id="about_me" name="about_me" class="form-control textbox-area" placeholder="About Me" maxlength="640" rows="7">{% if user['about_me'] %}{{ user['about_me'] }}{% else %}{% endif %}</textarea>
             </div>
             <div class="mb-3">
-                <input autocomplete="off" class="form-control mx-auto w-auto line-form" id="interestInput" value="" placeholder="Interests e.g. #interest1 #interest2" type="text" name="interests">
+                <input autocomplete="off" class="form-control mx-auto w-auto" id="interestInput" value="" placeholder="Interests e.g. #interest1 #interest2" type="text" name="interests">
                 <div id="warning" style="color: red;"></div>
                 <div id="interestList">
                     {% if user_interests %}

@@ -1,6 +1,7 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
+    <link rel="stylesheet" href="/static/styles/cred.css">
     <script src="/static/scripts/register.js"></script>
 {% endblock %}
 
@@ -9,22 +10,27 @@
 {% endblock %}
 
 {% block main %}
-    <div class="container-main x-form">
+    <div class="container-main o-profile">
+        <h3>Register</h3>
         <form action="/register" method="post">
             <div class="mb-3">
+                <label class="form-label">Username</label>
                 <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" required placeholder="Username" type="text">
-                <div id="warning" style="color: red;"></div>
+                <div id="warning" style="color: red; margin-top: 5px;"></div>
             </div>
             <div class="mb-3">
+                <label class="form-label">Name</label>
                 <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="name" name="name" required placeholder="Name" type="text" maxlength="70">
             </div>
             <div class="mb-3">
+                <label class="form-label">Password</label>
                 <input class="form-control mx-auto w-auto" id="password" name="password" required placeholder="Password" type="password">
-                <div id="warning2" style="color: red;"></div>
+                <div id="warning2" style="color: red; margin-top: 5px;"></div>
             </div>
             <div class="mb-3">
+                <label class="form-label">Confirm Password</label>
                 <input class="form-control mx-auto w-auto" id="confirm" name="confirm" required placeholder="Confirm Password" type="password">
-                <div id="warning3" style="color: red;"></div>
+                <div id="warning3" style="color: red; margin-top: 5px;"></div>
             </div>
             <button class="btn btn-primary" id="submit" name="submit" type="submit">Create Account</button>
         </form>

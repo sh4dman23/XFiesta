@@ -59,7 +59,7 @@
 }
 
 .actions {
-    width: 10vw;
+    width: 20vw;
     height: auto;
     margin-top: auto;
     margin-bottom: auto;
@@ -87,6 +87,9 @@
     margin-right: 2.5px;
     overflow: hidden;
     background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .action-button:hover {
@@ -100,7 +103,8 @@
 .action-button img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-position: center;
+    object-fit: contain;
     -webkit-user-drag: none;
     user-select: none;
 }
@@ -109,8 +113,11 @@
     .action-button:hover {
         box-shadow: none;
     }
+    .o-profile {
+        width: 90vw;
+    }
     .friend-box {
-        width: 80vw;
+        width: 85vw;
     }
     .friend-box:hover {
         background-color: white;

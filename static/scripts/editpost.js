@@ -109,16 +109,14 @@ document.addEventListener('DOMContentLoaded', function() {
             preview.src = "";
             image.value = null;
             remove_preview.style.display = 'none';
-        }
-        else if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
+        } else if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
             var reader = new FileReader();
             reader.onload = function() {
                 remove_preview.style.display = 'block';
                 preview.src = reader.result;
             };
             reader.readAsDataURL(image.files[0]);
-        }
-        else {
+        } else {
             preview.src = "";
             remove_preview.style.display = 'none';
             image.value = null;

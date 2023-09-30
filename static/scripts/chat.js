@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let is_adding = false;
     let last_message_sent_id = null;
 
+    // Check whether or not a request for new messages is already being processed
+    let is_checking = false;
+
     // Checks if there are no messages in the chat
     function check_empty_chat() {
         no_message.style.display = (document.getElementsByClassName('message-container')).length > 0 ? 'none' : 'flex';
@@ -163,13 +166,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add comment at the bottom
             send_box.value = "";
             add_comment(responseData);
-            console.log(responseData);
 
             // Update inbox id if not found
             if (inbox_id == null) {
                 inbox_id = responseData.inbox_id;
             }
-            console.log(responseData.inbox_id);
 
             // Update last message id
             last_message_id = responseData.message_id;
@@ -202,7 +203,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Periodically ask the server for new messages
     setInterval(async function() {
         const atBottom = (chatContainer.scrollTop + chatContainer.clientHeight) >= chatContainer.scrollHeight;
-        if (!is_adding) {
+        if (!is_adding && !is_checking) {
+            is_checking = true;
             try {
                 const url = '/api/check_message';
                 const data = {
@@ -235,6 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 if (!responseData.new) {
+                    is_checking = false;
                     return;
                 }
 
@@ -259,6 +262,8 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch(error) {
                 // Don't bother
             }
+
+            is_checking = false;
         }
     }, 700);
 
@@ -285,7 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
 
                 const responseData = await response.json();
-                console.log(responseData);
 
                 if (!responseData.result) {
                     return;
@@ -300,9 +304,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (responseData.deleted_messages) {
                     for (let deleted_message of responseData.deleted_messages) {
-                        console.log(deleted_message);
                         const messageBox = document.getElementById(deleted_message.message_id);
-                        console.log(messageBox);
 
                         if (messageBox) {
                             messageBox.remove();
@@ -320,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Delete buttons
     chatContainer.addEventListener('click', async function(event) {
         const target = event.target;
-        console.log(target);
 
         if (target.name == 'delete_message_button') {
             const delete_message_button = target;
@@ -356,7 +357,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
 
                     const responseData = await response.json();
-                    console.log(data, responseData);
 
                     if (!responseData.result) {
                         throw new Error("Error processing data!")

@@ -17,7 +17,7 @@
                 <button class="action-button btn-big" type="button" onclick="history.back();"><img src="/static/images/back.png"></button>
             </div>
             <div class="top-bar">
-                <a href="/profile/{{ user['username'] }}"><div class="profile-pic" style="width: 35px; height: 35px;"><img src="/static/images/user_profile_pic.png"></div></a>
+                <a href="/profile/{{ user['username'] }}"><div class="profile-pic" style="width: 35px; height: 35px;"><img src="{% if user['pfp_location'] %} /{{ user['pfp_location']}} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
                 <div style="margin-left: 0.5vw; text-align: left;">
                     <div class="name"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">{{ user['fullname'] }}</a></div>
                     <div class="username"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">@{{ user['username'] }}</a></div>

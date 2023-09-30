@@ -8,6 +8,7 @@ CREATE TABLE users (
     posts INTEGER DEFAULT 0 NOT NULL,
     carnival INTEGER DEFAULT 0 NOT NULL,
     creation_time TIMESTAMP NOT NULL,
+    pfp_location TEXT NOT NULL DEFAULT 'server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png',
     PRIMARY KEY(id)
 );
 

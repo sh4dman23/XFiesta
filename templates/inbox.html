@@ -21,7 +21,7 @@
                 {% for chat in inbox %}
                     <div id="{{ chat['user_id'] }}" class="chat-box">
                         <div class="person-info">
-                            <a href="/profile/{{ chat['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="/static/images/user_profile_pic.png"></div></a>
+                            <a href="/profile/{{ chat['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if chat['pfp_location'] %} /{{ chat['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
                             <div style="margin-left: 0.5vw; text-align: left;">
                                 <div class="name"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">{{ chat['fullname'] }}</a></div>
                                 <div class="username"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">@{{ chat['username'] }}</a></div>
