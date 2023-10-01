@@ -239,7 +239,7 @@ def mark_as_read():
             db.execute("UPDATE notifications SET status = 'read' WHERE id = ?;", data["id"])
         return jsonify({"result": True}), 200
     except Exception as e:
-        return jsonify({"result": False})
+        return jsonify({"result": False}), 400
 
 
 # Profile Page
