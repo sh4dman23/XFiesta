@@ -11,6 +11,10 @@ function create_element(elementTag='div', elementName=null, elementClass=null) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Keeps track of whether or not a request for updating notifications has been sent to the server
+    let is_checking_for_notifications = false;
+
+    // Notification counter
     const notification_count = document.getElementById("notification_count");
 
     // Do not close dropdown menu on click
@@ -92,7 +96,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add notifications
-    function add_notification(notification, latest_notif) {
+    function add_notification(notification) {
+        // Select the latest notification every time 
+        const latest_notif = document.querySelector('.dropdown-menu :nth-child(2)');
         const menu = document.querySelector('.dropdown-menu');
 
         // Increase notification count
@@ -119,37 +125,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update notifications via AJAX
     setInterval(async function(){
-        try {
-            const url = '/api/update_notifications';
+        if (!is_checking_for_notifications) {
+            is_checking_for_notifications = true;
+            try {
+                const url = '/api/update_notifications';
 
-            // The second child is the most recent notification (the first child is the 'mark all as read' button)
-            const latest_notif = document.querySelector('.dropdown-menu :nth-child(2)');
-            const data = {'id': latest_notif.getAttribute('notif_id')};
+                // The second child is the most recent notification (the first child is the 'mark all as read' button)
+                const current_latest_notif = document.querySelector('.dropdown-menu :nth-child(2)');
+                const data = {'last_notif_id': (current_latest_notif != null ? current_latest_notif.getAttribute('notif_id') : 0)};
 
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify(data)
-            });
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                });
 
-            if (!response.ok) {
-                throw new Error('Error processing data!');
+                if (!response.ok) {
+                    throw new Error('Error processing data!');
+                }
+
+                const responseData = await response.json();
+
+                if (!responseData.result) {
+                    throw new Error('Error retrieving data!');
+                } else if (!responseData.found) {
+                    is_checking_for_notifications = false;
+                    return;
+                }
+
+                console.log(data);
+                console.log(responseData);
+
+                // If there are no unread notifications,
+                if (parseInt(notification_count.innerHTML) == 0) {
+                    document.getElementById('no_notifications').remove();
+                    const mark_all_as_read = create_element('li');
+                    mark_all_as_read.style.marginBottom = '5px';
+                    mark_all_as_read.innerHTML = '<a class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;" onclick="mark_all_as_read();">Mark all as read</a>';
+                    document.querySelector('.dropdown-menu').appendChild(mark_all_as_read);
+                }
+                for (const notification of responseData.notifications) {
+                    add_notification(notification);
+                }
+            } catch(error) {
+                console.log(error);
             }
 
-            const responseData = await response.json();
-
-            if (!responseData.result) {
-                throw new Error('Error retrieving data!');
-            }
-
-            for (const notification of responseData.notifications) {
-                add_notification(notification, latest_notif);
-            }
-        } catch(error) {
-            console.log(error);
+            is_checking_for_notifications = false;
         }
     }, 5000);
 });

@@ -1,3 +1,8 @@
+h6 {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
 .bar {
     background-color: aliceblue;
     width: 95%;
@@ -76,6 +81,12 @@
     background-color: lightblue;
 }
 
+#no_notifications {
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
 .dropdown-item {
     display: flex;
     flex-wrap: wrap;
@@ -117,15 +128,23 @@
 }
 
 .post-feed {
-    width: 65%;
-    margin-right: 5%;
+    width: 67.5%;
+    margin-right: 2.5%;
     height: 50rem;
     padding: 10px 5px;
 }
 
-.recommended-friends {
+.right-part {
     width: 35%;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+}
+
+.recommended-friends, .open-chats {
+    width: 100%;
     padding: 10px 5px;
+    margin-bottom: 0px;
 }
 
 .user-info {

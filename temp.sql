@@ -111,6 +111,7 @@ CREATE TABLE messages (
     recipient_id INTEGER NOT NULL,
     contents TEXT NOT NULL,
     message_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_status TEXT NOT NULL CHECK(read_status IN ('read', 'unread')) DEFAULT 'unread',
     PRIMARY KEY(id),
     FOREIGN KEY(inbox_id) REFERENCES inbox(id),
     FOREIGN KEY(sender_id) REFERENCES users(id),

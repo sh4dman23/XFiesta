@@ -214,17 +214,57 @@ def check_password_api():
 @app.route("/")
 @login_required
 def index():
+    # User data
     user = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", session["user_id"])
+
+    # Unread notifications
     notifications = db.execute("SELECT id, href, details, status FROM notifications WHERE user_id = ? AND status = 'unread' ORDER BY n_time DESC;", session["user_id"])
     notification_count = len(notifications) if notifications else 0
-    return render_template("home.html", user=user[0], notifications=notifications, notification_count=notification_count)
+
+    # Recommended users who share similar interests
+    recommendations = db.execute(
+        """
+        SELECT DISTINCT u.id AS id, u.username AS username, u.fullname AS fullname, u.pfp_location AS pfp_location
+        FROM users AS u
+        JOIN user_interests ui ON u.id = ui.user_id
+        WHERE ui.interest_id IN (SELECT interest_id FROM user_interests WHERE user_id = ?)
+        AND u.id != ?
+        AND u.id NOT IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends != 0)
+        LIMIT 20;
+        """
+        , session["user_id"], session["user_id"], session["user_id"]
+    )
+    random.shuffle(recommendations)
+
+    # Open inboxes (inboxes with unread messages)
+    open_chats = db.execute(
+        """
+        SELECT DISTINCT(i.id), i.user_id1, i.user_id2
+        FROM inbox AS i
+        JOIN messages AS m
+        ON i.id = m.inbox_id
+        WHERE (i.user_id1 = ? OR i.user_id2 = ?)
+        AND m.read_status = 'unread';
+        """,
+        session["user_id"], session["user_id"]
+    )
+    for chat in open_chats:
+        # Other user's info
+        user_id = chat["user_id2"] if chat["user_id1"] == session["user_id"] else chat["user_id1"]
+        info = db.execute("SELECT username, fullname, pfp_location FROM users WHERE id = ?;", user_id)
+        chat["user_id"] = user_id
+        chat["username"] = info[0]["username"]
+        chat["fullname"] = info[0]["fullname"]
+        chat["pfp_location"] = info[0]["pfp_location"]
+
+    return render_template("home.html", user=user[0], notifications=notifications, notification_count=notification_count, recommendations=recommendations, open_chats=open_chats)
 
 
 # Marks notifications as read
 @app.route("/api/mark_notification_as_read", methods=["POST"])
 @login_required
 def mark_as_read():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     data = request.get_json()
@@ -239,7 +279,32 @@ def mark_as_read():
             db.execute("UPDATE notifications SET status = 'read' WHERE id = ?;", data["id"])
         return jsonify({"result": True}), 200
     except Exception as e:
+        logging.error(e)
         return jsonify({"result": False}), 400
+
+
+# Update notifications on home page
+@app.route("/api/update_notifications", methods=["POST"])
+@login_required
+def update_notifications():
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        abort(404)
+
+    data = request.get_json()
+    if not data or data.get("last_notif_id") is None:
+        return jsonify({"result": False}), 400
+
+    notifications = db.execute("SELECT id, href, details FROM notifications WHERE status = 'unread' AND id > ? AND user_id = ?;", data["last_notif_id"], session["user_id"])
+    if not notifications:
+        return jsonify({"result": True, "found": False}), 200
+    else:
+        response = {
+            "result": True,
+            "found": True,
+            "notifications": notifications
+        }
+        print(response)
+        return jsonify(response), 200
 
 
 # Profile Page
@@ -281,120 +346,6 @@ def profile(username):
                 user[0]["id"]
             )
         return render_template("o_user_profile.html", user=user[0], interests=interests, friends_status=status)
-
-
-# Update friends status via AJAX (Only handles friend requests, request declination and friend removal). DOES NOT HANDLE ACCEPT REQUESTS!
-@app.route("/api/manage_friends", methods=["POST"])
-@login_required
-def manage_friends():
-    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
-        abort(404)
-
-    id = request.form.get("user_id")
-
-    if not id or not id.isdigit() or id == session["user_id"]:
-        return jsonify({"result": "Failed"})
-
-    id = int(id)
-
-    user = db.execute("SELECT username FROM users WHERE id = ?;", id)
-    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
-
-    if not user:
-        return jsonify({"result": "Failed"})
-    try:
-        db.execute("BEGIN TRANSACTION;")
-        friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-        if not friends:
-            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
-            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
-
-            # Send notification to user
-            details = "@" + self[0]["username"] + " sent you a friend request."
-            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
-
-            db.execute("COMMIT;")
-            return jsonify({"result": "Request Sent"}), 200
-        elif friends[0]["friends"] == 0:
-            db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-            db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-
-            # Send notification to user
-            details = "@" + self[0]["username"] + " sent you a friend request."
-            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
-
-            db.execute("COMMIT;")
-            return jsonify({"result": "Request Sent"}), 200
-        else:
-            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
-            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
-
-            if friends[0]["friends"] == 2:
-                # Remove send request notification
-                details = "@" + self[0]["username"] + " sent you a friend request."
-                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", id, details)
-
-            elif friends[0]["friends"] == 3:
-                # Remove send request notification (saved in user's own notifications)
-                details = "@" + user[0]["username"] + " sent you a friend request."
-                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
-
-            db.execute("DELETE FROM friends WHERE friends = 0;")
-
-            if friends[0]["friends"] == 1:
-                db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
-
-            db.execute("COMMIT;")
-            return jsonify({"result": "Removed Friend"}), 200
-    except Exception as e:
-        db.execute("ROLLBACK;")
-        return jsonify({"result": "Failed"}), 400
-
-
-# Handles Accept Requests
-@app.route("/api/accept_friend_request", methods=["POST"])
-def accept_friend_request():
-    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
-        abort(404)
-
-    friend_id = request.form.get("user_id")
-    if not friend_id or friend_id == session["user_id"]:
-        return jsonify({"result": False}), 400
-
-    friend_id = int(friend_id)
-
-    user = db.execute("SELECT username FROM users WHERE id = ?;", friend_id)
-    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
-
-    try:
-        db.execute("BEGIN TRANSACTION;")
-
-        # Check for validity of request
-        status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
-        if not status or status[0]["friends"] != 3:
-            db.execute("ROLLBACK;")
-            return jsonify({"result": False}), 400
-
-        db.execute(
-            "UPDATE friends SET friends = 1 WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);"
-            , session["user_id"], friend_id, friend_id, session["user_id"]
-        )
-        db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
-
-        # Delete notification to user about friend request
-        details = "@" + user[0]["username"] + " sent you a friend request."
-        db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
-
-        # Send notification to friend about acceptance
-        details = "@" + self[0]["username"] + " accepted your friend request."
-        db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", friend_id, "/profile/" + self[0]["username"], details)
-
-        db.execute("COMMIT;")
-        return jsonify({"result": True}), 200
-
-    except Exception as e:
-        db.execute("ROLLBACK;")
-        return jsonify({"result": False}), 400
 
 
 # Manage Profile Settings
@@ -545,6 +496,120 @@ def friends():
 
     random.shuffle(recommendations)
     return render_template("friends.html", friends=friends, requests=requests, recommendations=recommendations)
+
+
+# Update friends status via AJAX (Only handles friend requests, request declination and friend removal). DOES NOT HANDLE ACCEPT REQUESTS!
+@app.route("/api/manage_friends", methods=["POST"])
+@login_required
+def manage_friends():
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        abort(404)
+
+    id = request.form.get("user_id")
+
+    if not id or not id.isdigit() or id == session["user_id"]:
+        return jsonify({"result": "Failed"})
+
+    id = int(id)
+
+    user = db.execute("SELECT username FROM users WHERE id = ?;", id)
+    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+
+    if not user:
+        return jsonify({"result": "Failed"})
+    try:
+        db.execute("BEGIN TRANSACTION;")
+        friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+        if not friends:
+            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
+            db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
+
+            # Send notification to user
+            details = "@" + self[0]["username"] + " sent you a friend request."
+            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
+
+            db.execute("COMMIT;")
+            return jsonify({"result": "Request Sent"}), 200
+        elif friends[0]["friends"] == 0:
+            db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+            db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+
+            # Send notification to user
+            details = "@" + self[0]["username"] + " sent you a friend request."
+            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
+
+            db.execute("COMMIT;")
+            return jsonify({"result": "Request Sent"}), 200
+        else:
+            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
+            db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+
+            if friends[0]["friends"] == 2:
+                # Remove send request notification
+                details = "@" + self[0]["username"] + " sent you a friend request."
+                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", id, details)
+
+            elif friends[0]["friends"] == 3:
+                # Remove send request notification (saved in user's own notifications)
+                details = "@" + user[0]["username"] + " sent you a friend request."
+                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
+
+            db.execute("DELETE FROM friends WHERE friends = 0;")
+
+            if friends[0]["friends"] == 1:
+                db.execute("UPDATE users SET friends = friends - 1 WHERE id = ? OR id = ?;", session["user_id"], id)
+
+            db.execute("COMMIT;")
+            return jsonify({"result": "Removed Friend"}), 200
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        return jsonify({"result": "Failed"}), 400
+
+
+# Handles Accept Requests
+@app.route("/api/accept_friend_request", methods=["POST"])
+def accept_friend_request():
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        abort(404)
+
+    friend_id = request.form.get("user_id")
+    if not friend_id or friend_id == session["user_id"]:
+        return jsonify({"result": False}), 400
+
+    friend_id = int(friend_id)
+
+    user = db.execute("SELECT username FROM users WHERE id = ?;", friend_id)
+    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+
+    try:
+        db.execute("BEGIN TRANSACTION;")
+
+        # Check for validity of request
+        status = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], friend_id)
+        if not status or status[0]["friends"] != 3:
+            db.execute("ROLLBACK;")
+            return jsonify({"result": False}), 400
+
+        db.execute(
+            "UPDATE friends SET friends = 1 WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);"
+            , session["user_id"], friend_id, friend_id, session["user_id"]
+        )
+        db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
+
+        # Delete notification to user about friend request
+        details = "@" + user[0]["username"] + " sent you a friend request."
+        db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
+
+        # Send notification to friend about acceptance
+        details = "@" + self[0]["username"] + " accepted your friend request."
+        db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", friend_id, "/profile/" + self[0]["username"], details)
+
+        db.execute("COMMIT;")
+        return jsonify({"result": True}), 200
+
+    except Exception as e:
+        db.execute("ROLLBACK;")
+        return jsonify({"result": False}), 400
 
 
 @app.route("/post", defaults={"post_id": ""})
@@ -992,7 +1057,7 @@ def add_comment():
         "date": info[0]["date"],
         "time": info[0]["time"],
     }
-    return jsonify(response)
+    return jsonify(response), 200
 
 
 # Manage comment likes/dislikes
@@ -1065,7 +1130,7 @@ def manage_comment_likes():
             "comment_status": new_status[0]["status"],
             "comment_like_count": like_count[0]["likes"],
         }
-    return jsonify(response)
+    return jsonify(response), 200
 
 
 # Delete comment
@@ -1155,7 +1220,7 @@ def inbox(user_id):
         else:
             inbox_id = inbox[0]["id"]
 
-        # Get messages and shared images
+        # Get messages
         messages = db.execute(
             """
             SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time
@@ -1164,6 +1229,10 @@ def inbox(user_id):
             ORDER BY message_time;
             """, inbox_id
         )
+
+        # Update messages to 'read'
+        db.execute("UPDATE messages SET read_status = 'read' WHERE recipient_id = ? AND read_status = 'unread';", session["user_id"])
+
         for message in messages:
             message_sender = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", message["sender_id"])
             message["sender_fullname"] = message_sender[0]["fullname"]
@@ -1249,7 +1318,7 @@ def check_deleted():
             db.execute("COMMIT;")
             return jsonify({"result": True, "deleted": False}), 200
 
-        # Clear deleted messages not sent by user
+        # Clear deleted messages sent by the other user
         db.execute("DELETE FROM deleted_messages WHERE inbox_id = ? AND sender_id != ?;", data["inbox_id"], session["user_id"])
         last_message = db.execute("SELECT id FROM messages WHERE inbox_id = ? ORDER BY id DESC LIMIT 1;", data["inbox_id"])
 
@@ -1260,7 +1329,7 @@ def check_deleted():
             "deleted_messages": deleted_messages
         }
         db.execute("COMMIT;")
-        return jsonify(response)
+        return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
         logging.error(e)
@@ -1298,7 +1367,7 @@ def check_message():
         db.execute("BEGIN TRANSACTION;")
 
         # Check if any new messages have been added
-        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC", inbox_id, data["last_message_id"])
+        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC;", inbox_id, data["last_message_id"])
         if not messages:
             db.execute("COMMIT;")
             return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
@@ -1312,6 +1381,10 @@ def check_message():
             "comment_list": list()
         }
 
+        # Update new messages to 'unread'
+        db.execute("UPDATE messages SET read_status = 'read' WHERE inbox_id = ? AND id > ?;", inbox_id, data["last_message_id"])
+
+        # Get both user's data
         user1 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", session["user_id"])
         user2 = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", data["person_id"])
 
@@ -1338,7 +1411,7 @@ def check_message():
             print(message_info["contents"])
             response["comment_list"].append(message_info)
         db.execute("COMMIT;")
-        return jsonify(response)
+        return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
         logging.error(f"Error: {e}")
@@ -1474,7 +1547,7 @@ def search_q():
             "search_results": posts
         }
 
-    return jsonify(response)
+    return jsonify(response), 200
 
 
 # Permanently delete user account and data

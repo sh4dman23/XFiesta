@@ -188,7 +188,7 @@ textarea {
 }
 
 .username {
-    font-size: smaller;
+    font-size: 0.8rem;
 }
 
 @media screen and (max-width: 768px) {

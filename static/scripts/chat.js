@@ -96,6 +96,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     check_empty_chat();
 
+    // Automatically focuses on box when user presses a key in this window
+    document.addEventListener('keyup', function(event) {
+        if (false) {
+            send_box.value = event.key;
+            send_box.focus();
+        }
+    });
+
     // Send message
     send_box.addEventListener('keyup', function(event) {
         if (send_box.value.length > 640) {
@@ -106,33 +114,28 @@ document.addEventListener('DOMContentLoaded', function() {
             warning.style.display = 'none';
         }
         if (event.key == 'Enter' && !event.shiftKey) {
-            send_box.disabled = true;
             send_button.click();
         }
     });
 
     send_button.onclick = async function() {
-        send_box.disabled = true;
         const contents = send_box.value;
-        send_button.disabled = true;
-        if (contents.length == 0) {
-            warning.innerHTML = 'Empty messages will not be sent!';
+        if (contents.length == 0 || contents.trim() == '') {
+            send_box.focus();
+            return;
+        } else if (contents.length > 640) {
+            warning.innerHTML = 'Too many characters!';
             warning.style.display = 'block';
             setTimeout(function() {
                 warning.innerHTML = '';
                 warning.style.display = 'none';
-            }, 2000);
-            send_box.disabled = false;
-            send_button.disabled = false;
+            }, 2500);
+            send_box.focus();
             return;
         }
-        if (contents.length > 640) {
-            warning.innerHTML = 'Too many characters!';
-            warning.style.display = 'block';
-            send_box.disabled = false;
-            send_button.disabled = false;
-            return;
-        }
+
+        send_box.disabled = true;
+        send_button.disabled = true;
 
         try {
             is_adding = true;
