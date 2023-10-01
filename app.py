@@ -5,7 +5,7 @@ from flask import Flask, redirect, render_template, request, session, jsonify, a
 from flask_session import Session
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from helpers import login_required, apology
+from helpers import login_required, apology, check_password
 import random
 import logging
 from markupsafe import Markup, escape
@@ -94,12 +94,6 @@ def get_image(directory, filename):
     return send_file(image_path)
 
 
-@app.route("/")
-@login_required
-def index():
-    return render_template("index.html")
-
-
 @app.route("/welcome")
 def welcome():
     if not session.get("user_id"):
@@ -128,7 +122,7 @@ def login():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    if session and session["user_id"]:
+    if session.get("user_id"):
         return redirect("/profile")
     if request.method == "POST":
         username = request.form.get("username")
@@ -137,7 +131,7 @@ def register():
         password2 = request.form.get("confirm")
 
         # Verify input
-        if not username or not fullname or not password1 or not password2 or password1 != password2 or len(fullname) > 70 or len(password1) < 8:
+        if not username or not fullname or not password1 or not password2 or password1 != password2 or len(fullname) > 70 or not check_password(password1):
             return apology("Invalid Submission!")
         check = db.execute("SELECT * FROM users WHERE username = ?;", username)
         if len(check) > 0:
@@ -159,10 +153,10 @@ def logout():
     return redirect("/welcome")
 
 
-# Check username via AJAX request
+# Check username
 @app.route("/api/check_username", methods=["POST"])
 def check_username():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     username = request.form.get("username")
     users = db.execute("SELECT * FROM users WHERE username = ?;", username)
@@ -172,6 +166,80 @@ def check_username():
     # Username is free to use
     else:
         return jsonify({"result": True})
+
+
+# Check password
+@app.route("/api/check_password", methods=["POST"])
+def check_password_api():
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
+        abort(404)
+
+    data = request.get_json()
+
+    if not data or not data.get("password"):
+        return jsonify({"result": False}), 400
+
+    # Check1 is used in login, change_account and delete_account (remove_account) for checking user's current password
+    if session.get("user_id"):
+        info = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
+        check1 = check_password_hash(info[0]["hash"], data["password"])
+    else:
+        check1 = False
+
+    user_exists = False
+
+    if data.get("username"):
+        user = db.execute("SELECT hash FROM users WHERE username = ?;", data["username"])
+        if not user:
+            user_exists = False
+            check1 = False
+        else:
+            user_exists = True
+            check1 = check_password_hash(user[0]["hash"], data["password"])
+
+
+    # Check2 is used in register and change_account to check if whether or not the new password has enough of each type of characters
+    check2 = check_password(data["password"])
+
+    response = {
+        "result": True,
+        "check1": check1,
+        "check2": check2,
+        "user_exists": user_exists
+    }
+    return jsonify(response), 200
+
+
+# Home page
+@app.route("/")
+@login_required
+def index():
+    user = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", session["user_id"])
+    notifications = db.execute("SELECT id, href, details, status FROM notifications WHERE user_id = ? AND status = 'unread' ORDER BY n_time DESC;", session["user_id"])
+    notification_count = len(notifications) if notifications else 0
+    return render_template("home.html", user=user[0], notifications=notifications, notification_count=notification_count)
+
+
+# Marks notifications as read
+@app.route("/api/mark_notification_as_read", methods=["POST"])
+@login_required
+def mark_as_read():
+    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        abort(404)
+
+    data = request.get_json()
+    if not data or not (data.get("id") or data.get("optional")):
+        return jsonify({"result": False}), 400
+
+    # Mark all as read
+    try:
+        if data.get("optional") and data["optional"] == "all":
+            db.execute("UPDATE notifications SET status = 'read' WHERE user_id = ?;", session["user_id"])
+        elif data.get("id"):
+            db.execute("UPDATE notifications SET status = 'read' WHERE id = ?;", data["id"])
+        return jsonify({"result": True}), 200
+    except Exception as e:
+        return jsonify({"result": False})
 
 
 # Profile Page
@@ -219,7 +287,7 @@ def profile(username):
 @app.route("/api/manage_friends", methods=["POST"])
 @login_required
 def manage_friends():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     id = request.form.get("user_id")
@@ -228,22 +296,49 @@ def manage_friends():
         return jsonify({"result": "Failed"})
 
     id = int(id)
+
+    user = db.execute("SELECT username FROM users WHERE id = ?;", id)
+    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+
+    if not user:
+        return jsonify({"result": "Failed"})
     try:
         db.execute("BEGIN TRANSACTION;")
         friends = db.execute("SELECT friends FROM friends WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
         if not friends:
             db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 2);", session["user_id"], id)
             db.execute("INSERT INTO friends(user_id1, user_id2, friends) VALUES(?, ?, 3);", id, session["user_id"])
+
+            # Send notification to user
+            details = "@" + self[0]["username"] + " sent you a friend request."
+            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
+
             db.execute("COMMIT;")
             return jsonify({"result": "Request Sent"}), 200
         elif friends[0]["friends"] == 0:
             db.execute("UPDATE friends SET friends = 2 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
             db.execute("UPDATE friends SET friends = 3 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+
+            # Send notification to user
+            details = "@" + self[0]["username"] + " sent you a friend request."
+            db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", id, "/profile/" + self[0]["username"], details)
+
             db.execute("COMMIT;")
             return jsonify({"result": "Request Sent"}), 200
         else:
             db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", session["user_id"], id)
             db.execute("UPDATE friends SET friends = 0 WHERE user_id1 = ? AND user_id2 = ?;", id, session["user_id"])
+
+            if friends[0]["friends"] == 2:
+                # Remove send request notification
+                details = "@" + self[0]["username"] + " sent you a friend request."
+                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", id, details)
+
+            elif friends[0]["friends"] == 3:
+                # Remove send request notification (saved in user's own notifications)
+                details = "@" + user[0]["username"] + " sent you a friend request."
+                db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
+
             db.execute("DELETE FROM friends WHERE friends = 0;")
 
             if friends[0]["friends"] == 1:
@@ -259,7 +354,7 @@ def manage_friends():
 # Handles Accept Requests
 @app.route("/api/accept_friend_request", methods=["POST"])
 def accept_friend_request():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     friend_id = request.form.get("user_id")
@@ -267,6 +362,9 @@ def accept_friend_request():
         return jsonify({"result": False}), 400
 
     friend_id = int(friend_id)
+
+    user = db.execute("SELECT username FROM users WHERE id = ?;", friend_id)
+    self = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
 
     try:
         db.execute("BEGIN TRANSACTION;")
@@ -282,6 +380,15 @@ def accept_friend_request():
             , session["user_id"], friend_id, friend_id, session["user_id"]
         )
         db.execute("UPDATE users SET friends = friends + 1 WHERE id = ? OR id = ?;", session["user_id"], friend_id)
+
+        # Delete notification to user about friend request
+        details = "@" + user[0]["username"] + " sent you a friend request."
+        db.execute("DELETE FROM notifications WHERE user_id = ? AND details = ?;", session["user_id"], details)
+
+        # Send notification to friend about acceptance
+        details = "@" + self[0]["username"] + " accepted your friend request."
+        db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", friend_id, "/profile/" + self[0]["username"], details)
+
         db.execute("COMMIT;")
         return jsonify({"result": True}), 200
 
@@ -399,7 +506,7 @@ def change_account():
         password_new = request.form.get("password_new")
         password_new2 = request.form.get("password_new2")
 
-        if not username or not password_old or not password_new or not password_new2 or password_new != password_new2:
+        if not username or not password_old or not password_new or not password_new2 or password_new != password_new2 or not check_password(password_new):
             return apology("Invalid Submission!")
 
         check = db.execute("SELECT id FROM users WHERE username = ?;", username)
@@ -713,7 +820,7 @@ def edit_post(post_id):
 @app.route("/api/manage_likes", methods=["POST"])
 @login_required
 def manage_likes():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     post_id = request.form.get("post_id")
@@ -795,7 +902,7 @@ def manage_likes():
 @app.route("/api/delete_post", methods=["POST"])
 @login_required
 def delete_post():
-    if not request.headers.get("X-Requested-With") == "XMLHttpRequest":
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     post_id = request.form.get("post_id")
@@ -851,12 +958,12 @@ def delete_post():
 @app.route("/api/add_comment", methods=["POST"])
 @login_required
 def add_comment():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
     print(data)
 
-    if not data or not data["post_id"] or not data["comment_contents"] or len(data["comment_contents"]) > 640:
+    if not data or not data.get("post_id") or not data.get("comment_contents") or len(data["comment_contents"]) > 640:
         return jsonify({"result": False}), 400
     try:
         db.execute("BEGIN TRANSACTION;")
@@ -892,7 +999,7 @@ def add_comment():
 @app.route("/api/manage_comment_likes", methods=["POST"])
 @login_required
 def manage_comment_likes():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
     if not data or data["action"] not in ["like", "dislike"]:
@@ -965,7 +1072,7 @@ def manage_comment_likes():
 @app.route("/api/delete_comment", methods=["POST"])
 @login_required
 def delete_comment():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     comment = request.get_json()
@@ -1068,7 +1175,7 @@ def inbox(user_id):
 @app.route("/api/send_message", methods=["POST"])
 @login_required
 def send_message():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
     print(data)
@@ -1085,7 +1192,7 @@ def send_message():
             raise Exception("User does not exist!")
 
         # If inbox doesn't exist yet, check if the other user has initiated it and if not, add it
-        if not data["inbox_id"]:
+        if not data.get("inbox_id"):
             inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], data["reciever_id"], data["reciever_id"], session["user_id"])
             if inbox:
                 inbox_id = inbox[0]["id"]
@@ -1124,12 +1231,12 @@ def send_message():
 @app.route("/api/check_deleted", methods=["POST"])
 @login_required
 def check_deleted():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     data = request.get_json()
 
-    if not data or not data["inbox_id"]:
+    if not data or not data.get("inbox_id"):
         return jsonify({"result": True, "deleted": False}), 200
 
     try:
@@ -1164,7 +1271,7 @@ def check_deleted():
 @app.route("/api/check_message", methods=["POST"])
 @login_required
 def check_message():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
 
@@ -1173,11 +1280,11 @@ def check_message():
         return jsonify({"result": False}), 200
 
     # If not last_message_id has been sent, it is safe to assume that the inbox is non-existent (yet) or empty
-    if not data["last_message_id"]:
+    if not data.get("last_message_id"):
         data["last_message_id"] = 0
 
     # If inbox id has not been sent check for new one
-    if not data["inbox_id"] or data["inbox_id"] == "":
+    if not data.get("inbox_id") or data["inbox_id"] == "":
         inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], data["person_id"], data["person_id"], session["user_id"])
         if not inbox:
             return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
@@ -1242,13 +1349,13 @@ def check_message():
 @app.route("/api/delete_message", methods=["POST"])
 @login_required
 def delete_message():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     data = request.get_json()
     print(data)
 
-    if not data or not data["message_id"]:
+    if not data or not data.get("message_id"):
         return jsonify({"result": False}), 400
 
     info = db.execute("SELECT inbox_id, sender_id FROM messages WHERE id = ?;", data["message_id"])
@@ -1280,12 +1387,12 @@ def search():
 @app.route("/api/search", methods=["POST"])
 @login_required
 def search_q():
-    if not request.headers.get("X-Requested-With", "XMLHttpRequest"):
+    if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
 
     data = request.get_json()
 
-    if not data or not data["target"] or data["target"] not in ["users", "posts"] or not data["option"] or data["option"] not in ["users_all", "users_friends", "posts_all", "posts_mine", "posts_friends"] or not data["query"] or len(data["query"]) < 1 or len(data["query"]) > 640:
+    if not data or not data.get("target") or data["target"] not in ["users", "posts"] or not data.get("option") or data["option"] not in ["users_all", "users_friends", "posts_all", "posts_mine", "posts_friends"] or not data.get("query") or len(data["query"]) < 1 or len(data["query"]) > 640:
         return jsonify({"result": False}), 400
 
     # Search through users
@@ -1377,79 +1484,73 @@ def remove_account():
     if request.method == "POST":
         password = request.form.get("password")
         user = db.execute("SELECT hash FROM users WHERE id = ?;", session["user_id"])
-        confirm = request.form.get("confirmation")
-        if not password or not confirm:
+        if not password:
             return apology("Invalid Submission!")
         elif not check_password_hash(user[0]["hash"], password):
             return apology("Incorrect Password!")
-        elif confirm == "No":
-            return redirect("/account_settings")
-        elif confirm == "Yes" and check_password_hash(user[0]["hash"], password):
-            try:
-                # Begin deletion of all user data
-                db.execute("BEGIN TRANSACTION;")
+        try:
+            # Begin deletion of all user data
+            db.execute("BEGIN TRANSACTION;")
 
-                # Remove user from everyone's friendlist
-                db.execute("UPDATE users SET friends = friends - 1 WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
+            # Remove user from everyone's friendlist
+            db.execute("UPDATE users SET friends = friends - 1 WHERE id IN (SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1);", session["user_id"])
 
-                # Remove user from friends table
-                db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+            # Remove user from friends table
+            db.execute("DELETE FROM friends WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
 
-                # Delete all images from posts by user
-                images = db.execute("SELECT imagelocation FROM posts WHERE user_id = ?;", session["user_id"])
+            # Delete all images from posts by user
+            images = db.execute("SELECT imagelocation FROM posts WHERE user_id = ?;", session["user_id"])
 
-                for image in images:
-                    if image["imagelocation"]:
-                        try:
-                            # Remove image (if located on server on server)
-                            os.remove(image["imagelocation"])
-                            directory = os.path.dirname(image["imagelocation"])
-
-                            # Remove folder (if empty)
-                            if os.path.exists(directory) and not os.listdir(directory):
-                                os.removedirs(directory)
-                        except OSError:
-                            pass
-
-                # Remove all posts by user including tags, interactions, comments and comment interactions
-                db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
-                db.execute("DELETE FROM user_post_interactions WHERE user_id = ?;", session["user_id"])
-
-                db.execute("DELETE FROM user_comment_interactions WHERE user_id = ?;", session["user_id"])
-                db.execute("DELETE FROM comments WHERE user_id = ?;", session["user_id"])
-
-                db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
-
-                # Remove all messages sent and recieved by user
-                db.execute("DELETE FROM deleted_messages WHERE sender_id = ?;", session["user_id"])
-                db.execute("DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?;", session["user_id"], session["user_id"])
-                db.execute("DELETE FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
-
-                # Delete all user interests
-                db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
-
-                # Delete user pfp
-                pfp = db.execute("SELECT pfp_location FROM users WHERE user_id = ?;", session["user_id"])
-                if pfp and pfp[0]["pfp_location"] != 'server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png':
+            for image in images:
+                if image["imagelocation"]:
                     try:
-                        os.remove(pfp[0]["pfp_location"])
-                        pfp_dir = os.path.dirname(pfp[0]["pfp_location"])
-                        os.removedirs(pfp_dir)
+                        # Remove image (if located on server on server)
+                        os.remove(image["imagelocation"])
+                        directory = os.path.dirname(image["imagelocation"])
+
+                        # Remove folder (if empty)
+                        if os.path.exists(directory) and not os.listdir(directory):
+                            os.removedirs(directory)
                     except OSError:
                         pass
 
-                # Delete remaining user data
-                db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
+            # Remove all posts by user including tags, interactions, comments and comment interactions
+            db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
+            db.execute("DELETE FROM user_post_interactions WHERE user_id = ?;", session["user_id"])
 
-                db.execute("COMMIT;")
-                session.clear()
-                return redirect("/welcome")
-            except Exception as e:
-                db.execute("ROLLBACK;")
-                logging.error(f"An error occurred: {str(e)}")
-                return apology(f"Account Deletion Failed! - {e}")
-        else:
-            return apology("Invalid Submission!")
+            db.execute("DELETE FROM user_comment_interactions WHERE user_id = ?;", session["user_id"])
+            db.execute("DELETE FROM comments WHERE user_id = ?;", session["user_id"])
+
+            db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
+
+            # Remove all messages sent and recieved by user
+            db.execute("DELETE FROM deleted_messages WHERE sender_id = ?;", session["user_id"])
+            db.execute("DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?;", session["user_id"], session["user_id"])
+            db.execute("DELETE FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
+
+            # Delete all user interests
+            db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+            # Delete user pfp
+            pfp = db.execute("SELECT pfp_location FROM users WHERE id = ?;", session["user_id"])
+            if pfp and pfp[0]["pfp_location"] != 'server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png':
+                try:
+                    os.remove(pfp[0]["pfp_location"])
+                    pfp_dir = os.path.dirname(pfp[0]["pfp_location"])
+                    os.removedirs(pfp_dir)
+                except OSError:
+                    pass
+
+            # Delete remaining user data
+            db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
+
+            db.execute("COMMIT;")
+            session.clear()
+            return redirect("/welcome")
+        except Exception as e:
+            db.execute("ROLLBACK;")
+            logging.error(f"An error occurred: {str(e)}")
+            return apology(f"Account Deletion Failed! - {e}")
     else:
         return render_template("remove_account.html")
 

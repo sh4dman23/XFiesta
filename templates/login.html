@@ -2,6 +2,7 @@
 
 {% block optional_c %}
     <link rel="stylesheet" href="/static/styles/cred.css">
+    <script src="/static/scripts/login.js"></script>
 {% endblock %}
 
 {% block title %}
@@ -20,6 +21,7 @@
                 <label class="form-label">Password</label>
                 <input class="form-control mx-auto w-auto" id="password" name="password" required placeholder="Password" type="password">
             </div>
+            <p id="warning" style="color: red; margin-bottom: 5px;"></p>
             <div>
                 <a href="/register">Don't have an account?</a>
             </div>

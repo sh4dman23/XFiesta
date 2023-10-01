@@ -4,6 +4,15 @@ form {
     align-items: center;
 }
 
-.form-label {
+label {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 29vw !important;
     text-align: left;
+}
+
+@media screen and (max-width: 768px) {
+    label {
+        width: 69vw !important;
+    }
 }

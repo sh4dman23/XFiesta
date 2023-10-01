@@ -12,7 +12,7 @@
 {% block main %}
     <div class="container-main o-profile">
         <h3>Register</h3>
-        <form action="/register" method="post">
+        <form id="registration_form" action="/register" method="post">
             <div class="mb-3">
                 <label class="form-label">Username</label>
                 <input autocomplete="off" autofocus class="form-control mx-auto w-auto" id="username" name="username" required placeholder="Username" type="text">
@@ -30,9 +30,10 @@
             <div class="mb-3">
                 <label class="form-label">Confirm Password</label>
                 <input class="form-control mx-auto w-auto" id="confirm" name="confirm" required placeholder="Confirm Password" type="password">
-                <div id="warning3" style="color: red; margin-top: 5px;"></div>
             </div>
-            <button class="btn btn-primary" id="submit" name="submit" type="submit">Create Account</button>
+            <div id="warning3" style="color: red; margin-top: 5px;"></div>
+            <br>
+            <button class="btn btn-primary" id="submit_button" name="submit_button" type="submit">Create Account</button>
         </form>
     </div>
 {% endblock %}

@@ -182,6 +182,15 @@ textarea {
     bottom: 0 !important;
 }
 
+.name {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.username {
+    font-size: smaller;
+}
+
 @media screen and (max-width: 768px) {
     .navbar {
         background-color: transparent !important;

@@ -1,0 +1,206 @@
+.bar {
+    background-color: aliceblue;
+    width: 95%;
+    border: 5px solid transparent;
+    border-radius: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.user {
+    width: 25%;
+    margin-left: 2.5%;
+    display: flex;
+    justify-content: left;
+}
+
+.create-post {
+    width: 50%;
+    margin-right: 1%;
+}
+
+.create-post-button {
+    width: 100%;
+    box-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+}
+
+.notifications {
+    width: 25%;
+    margin-right: 2.5%;
+    display: flex;
+    justify-content: right;
+}
+
+.dropdown {
+    width: 80%;
+    margin-right: 0%;
+}
+
+.notifications-button {
+    width: 100%;
+    background-color: white !important;
+    box-shadow: 1px 1px 1px rgba(0,0,0,0.6);
+}
+
+.notification-count {
+    display: inline-block;
+    padding: 2.5px 5px;
+    background-color: lightblue;
+    color: black;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+}
+
+.dropdown-menu {
+    width: 100%;
+    background-color: white;
+    max-height: 15rem;
+    overflow-x: auto;
+    box-shadow: 2px 2px 2px rgba(0,0,0,0.6);
+}
+
+.notif {
+    margin-bottom: 5px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+}
+
+.notif-unread {
+    background-color: aliceblue;
+}
+
+.notif:hover {
+    background-color: lightblue;
+}
+
+.dropdown-item {
+    display: flex;
+    flex-wrap: wrap;
+    white-space: normal;
+    overflow: hidden;
+}
+
+.dropdown-item:hover {
+    background-color: inherit;
+}
+
+.dropdown-item:active {
+    color: black;
+    background-color: inherit;
+}
+
+.mark-as-read {
+    display: block;
+    text-decoration: underline;
+    width: 95% !important;
+    margin-right: 5%;
+    color: black;
+    text-align: right;
+    cursor: pointer;
+}
+
+.main-contents {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: flex-start;
+}
+
+.o-profile {
+    margin-top: 2.5rem;
+}
+
+.post-feed {
+    width: 65%;
+    margin-right: 5%;
+    height: 50rem;
+    padding: 10px 5px;
+}
+
+.recommended-friends {
+    width: 35%;
+    padding: 10px 5px;
+}
+
+.user-info {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: white;
+    padding: 5px 10px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    display: flex;
+}
+
+.user-info:hover {
+    background-color: #f0f0f0;
+}
+
+.top-part {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    margin-right: auto;
+}
+
+.actions {
+    width: 50%;
+    height: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+    display: flex;
+    justify-content: right;
+}
+
+.action-button {
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid transparent;
+    border-radius: 50% !important;
+    background-color: white;
+    display: flex;
+    margin-left: 5px;
+    margin-right: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+
+.action-button img {
+    height: 100%;
+    width: auto;
+    object-fit: contain;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+}
+
+.action-button:hover {
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+}
+
+.action-button:active {
+    transform: translateY(2px);
+}
+
+@media screen and (max-width: 768px) {
+    .create-post {
+        display: none;
+    }
+
+    .user {
+        width: 40%;
+        justify-content: left;
+    }
+
+    .notifications {
+        width: 60% !important;
+    }
+}

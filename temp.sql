@@ -126,3 +126,14 @@ CREATE TABLE deleted_messages (
     FOREIGN KEY(inbox_id) REFERENCES inbox(id),
     FOREIGN KEY(sender_id) REFERENCES users(id)
 );
+
+CREATE TABLE notifications (
+    id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    href TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('read', 'unread')) DEFAULT 'unread',
+    details TEXT NOT NULL,
+    n_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);

@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <script src="/static/scripts/home.js"></script>
+    <link rel="stylesheet" href="/static/styles/home.css">
+{% endblock %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div class="bar">
+            <div class="user">
+                <a href="/profile/{{ user['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                <div style="margin-left: 0.5vw; text-align: left;">
+                    <div class="name"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">{{ user['fullname'] }}</a></div>
+                    <div class="username"><a href="/profile/{{ user['username'] }}" style="text-decoration: none; color: inherit;">@{{ user['username'] }}</a></div>
+                </div>
+            </div>
+            <div class="create-post">
+                <a href="/createpost" target="__blank"><button class="btn btn-primary btn-prof create-post-button">Create A Post</button></a>
+            </div>
+            <div class="notifications">
+                <div class="dropdown">
+                    <button class="btn btn-primary btn-prof dropdown-toggle notifications-button" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      Notifications
+                      <span id="notification_count" class="notification-count">{{ notification_count }}</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% if notifications %}
+                            <li style="margin-bottom: 5px;">
+                                <a class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;" onclick="mark_all_as_read();">Mark all as read</a>
+                            </li>
+                            {% for notification in notifications %}
+                                {% if notification['status'] == 'unread' %}
+                                    <li name="notif" class="notif notif-unread" notif_id = "{{ notification['id'] }}">
+                                {% else %}
+                                    <li name="notif" class="notif" notif_id = "{{ notification['id'] }}">
+                                {% endif %}
+                                        <a class="dropdown-item" href="{{ notification['href'] }}" target="__blank">{{ notification['details'] }}</a>
+                                        <a class="mark-as-read" onclick="mark_as_read({{ notification['id'] }})">Mark as read</a>
+                                    </li>
+                            {% endfor %}
+                        {% else %}
+                            <p style="text-align: center; margin-top: auto; margin-bottom: auto;">
+                                You have no unread notifications.
+                            </p>
+                        {% endif %}
+                    </ul>
+                  </div>
+            </div>
+        </div>
+
+        <div class="main-contents">
+            <div class="o-profile post-feed">Posts</div>
+            <div class="o-profile recommended-friends">
+                <h6>People Who Share Your Interests</h6>
+                <div class="user-info">
+                    {% if recommendations %}
+                        {% for person in recommendations %}
+                            <div class="top-part">
+                                <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name" style="font-size: 0.9rem;"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">{{ person['fullname'] }}</a></div>
+                                    <div class="username" style="font-size: 0.7rem;"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">@{{ person['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <a href="/profile/{{ person['username'] }}"><button class="action-button">
+                                    <img src="/static/images/profile.png" style="height: 3rem;">
+                                </button></a>
+                                <a href="/inbox/{{ person['id'] }}"><button class="action-button">
+                                    <img src="/static/images/comments.png" style="height: 1.4rem;">
+                                </button></a>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div style="text-align: center; margin-left: auto; margin-right: auto;">
+                            No <b>interest</b>-ing people today.
+                            <br>
+                            Get it? No?
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
