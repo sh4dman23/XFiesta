@@ -96,10 +96,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     check_empty_chat();
 
+    const printable = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&' + "'()*+,-./:;<=>?@[\]^_`{|}~";
     // Automatically focuses on box when user presses a key in this window
     document.addEventListener('keyup', function(event) {
-        if (false) {
-            send_box.value = event.key;
+        if (printable.includes(event.key) && document.activeElement != send_box) {
+            send_box.value += event.key;
             send_box.focus();
         }
     });

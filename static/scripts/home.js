@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add notifications
     function add_notification(notification) {
-        // Select the latest notification every time 
+        // Select the latest notification every time
         const latest_notif = document.querySelector('.dropdown-menu :nth-child(2)');
         const menu = document.querySelector('.dropdown-menu');
 
@@ -177,4 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
             is_checking_for_notifications = false;
         }
     }, 5000);
+
+    // Buttons in post section
+    document.
 });

@@ -217,6 +217,76 @@ def index():
     # User data
     user = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", session["user_id"])
 
+    # Checks if user has any user interests
+    user_interest = db.execute("SELECT * FROM user_interests WHERE user_id = ?;", session["user_id"])
+
+    # First, get the posts with the same tags as the user's interests (and not yet interactied with by user)
+    # Then, get the posts which have been created by user's friends
+    # Then, get the posts created by the user
+    # Then, get the trending posts
+    feed = db.execute(
+        """
+        SELECT DISTINCT id, user_id, likes, comments, title, contents, imagelocation, post_time, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM (
+            SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
+            RANDOM() AS random_order -- Add randomness to mixing
+            FROM posts AS p
+            JOIN post_tags AS pt
+            ON p.id = pt.post_id
+            JOIN user_interests AS ui
+            ON pt.tag_id = ui.interest_id
+            JOIN user_post_interactions AS upi
+            ON p.id != upi.post_id
+            JOIN comments AS c
+            ON p.id != c.post_id
+            WHERE ui.user_id = ?
+            AND upi.user_id = ?
+            AND c.user_id = ?
+
+            UNION
+
+            SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
+            RANDOM() AS random_order
+            FROM posts AS p
+            JOIN friends AS f
+            ON (p.user_id = f.user_id1 AND f.user_id2 = ? AND f.friends = 1)
+
+            UNION
+
+            SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
+            RANDOM() AS random_order
+            FROM posts AS p
+            WHERE p.user_id = ?
+
+            UNION
+
+            SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
+            RANDOM() AS random_order
+            FROM posts AS p
+            WHERE p.post_time >= date('now', '-7 days')
+            ORDER BY p.likes DESC, p.post_time DESC
+        )
+        ORDER BY DATE(post_time) DESC, random_order DESC, likes DESC;
+        """,
+        session["user_id"], session["user_id"], session["user_id"], session["user_id"], session["user_id"]
+    )
+
+    for post in feed:
+        # Poster's info
+        poster = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", post["user_id"])
+        post["username"] = poster[0]["username"]
+        post["fullname"] = poster[0]["fullname"]
+        post["pfp_location"] = poster[0]["pfp_location"]
+
+        # Verify if user is the owner of the post
+        post["owner"] = True if post["user_id"] == session["user_id"] else False
+
+        # Get user's current interaction status with post
+        status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
+        post["status"] = status[0]["status"] if status else 0
+
+        tags = db.execute("SELECT i.interest FROM interests AS i JOIN post_tags AS pt ON i.id = pt.tag_id WHERE pt.post_id = ?;", post["id"])
+        post["tags"] = tags
+
     # Unread notifications
     notifications = db.execute("SELECT id, href, details, status FROM notifications WHERE user_id = ? AND status = 'unread' ORDER BY n_time DESC;", session["user_id"])
     notification_count = len(notifications) if notifications else 0
@@ -244,9 +314,10 @@ def index():
         JOIN messages AS m
         ON i.id = m.inbox_id
         WHERE (i.user_id1 = ? OR i.user_id2 = ?)
-        AND m.read_status = 'unread';
+        AND m.read_status = 'unread'
+        AND m.recipient_id = ?;
         """,
-        session["user_id"], session["user_id"]
+        session["user_id"], session["user_id"], session["user_id"]
     )
     for chat in open_chats:
         # Other user's info
@@ -257,7 +328,7 @@ def index():
         chat["fullname"] = info[0]["fullname"]
         chat["pfp_location"] = info[0]["pfp_location"]
 
-    return render_template("home.html", user=user[0], notifications=notifications, notification_count=notification_count, recommendations=recommendations, open_chats=open_chats)
+    return render_template("home.html", user=user[0], feed=feed, notifications=notifications, notification_count=notification_count, recommendations=recommendations, open_chats=open_chats)
 
 
 # Marks notifications as read

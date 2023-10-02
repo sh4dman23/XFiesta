@@ -1,3 +1,8 @@
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
 h6 {
     font-weight: bold;
     font-size: 1.1rem;
@@ -130,7 +135,6 @@ h6 {
 .post-feed {
     width: 67.5%;
     margin-right: 2.5%;
-    height: 50rem;
     padding: 10px 5px;
 }
 
@@ -145,6 +149,8 @@ h6 {
     width: 100%;
     padding: 10px 5px;
     margin-bottom: 0px;
+    max-height: 30rem;
+    overflow-x: auto;
 }
 
 .user-info {
@@ -207,6 +213,155 @@ h6 {
 
 .action-button:active {
     transform: translateY(2px);
+}
+
+
+.posts {
+    margin: 1rem auto;
+    width: 98%;
+}
+
+.post-box {
+    width: 100%;
+    background-color: white;
+    font-size: 0.75rem;
+    border: 2px solid transparent;
+    border-radius: 10px;
+}
+
+.post-box:hover {
+    background-color: #f0f0f0;
+}
+
+.user-info-post {
+    width: 8%;
+    margin-left: 2%;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: left;
+    align-items: center;
+}
+
+.post-title {
+    width: 80%;
+    font-size: 24px;
+    font-weight: 500;
+    text-align: center;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+.post-timestamp {
+    width: 8%;
+    margin-right: 2%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.post-image img {
+    width: 40%;
+}
+
+.contents {
+    width: 90%;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+    font-size: 15px;
+}
+
+.tags {
+    width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 2vh;
+    margin-bottom: 2vh;
+    display: flex;
+    justify-content: left;
+    flex-wrap: wrap;
+}
+
+.tag {
+    margin-left: 5px !important;
+    margin-right: 5px !important;
+    background-color: #6aaecc;
+    padding: 5px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+}
+
+.actions-post {
+    height: auto;
+    margin-top: auto;
+    margin-bottom: auto;
+    display: flex;
+}
+
+.action-button-post {
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid transparent;
+    border-radius: 10px !important;
+    background-color: white;
+    display: flex;
+    margin-left: 5px;
+    margin-right: 5px;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-left {
+    margin-left: 10px;
+    margin-bottom: 10px;
+    width: 50%;
+    display: flex;
+    justify-content: left;
+}
+
+.btn-right {
+    margin-right: 10px;
+    margin-bottom: 10px;
+    width: 50%;
+    display: flex;
+    justify-content: right;
+}
+
+.action-button-post img {
+    height: 90%;
+    width: auto;
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+}
+
+.btn-big img {
+    width: 4rem;
+    height: 4rem;
+}
+
+.like_count {
+    font-size: 1rem;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+#delete_popup {
+    width: 90%;
+    padding: 3rem 2rem;
+    background-color: white;
+    display: none;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
 
 @media screen and (max-width: 768px) {

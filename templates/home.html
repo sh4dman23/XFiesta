@@ -52,10 +52,82 @@
                   </div>
             </div>
         </div>
-
         <div class="main-contents">
             <div class="o-profile post-feed">
                 <h6>Posts</h6>
+                {% for post in feed %}
+                    <div class="posts" post_id="{{ post['id'] }}" status="{{ post['status'] }}">
+                        <div class="post-box">
+                            <div class="top-part">
+                                <div class="user-info-post">
+                                    <a href="/profile/{{ post['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if post['pfp_location'] %} /{{ post['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                    <div style="margin-left: 0.5vw; text-align: left;">
+                                        <div class="name"><a href="/profile/{{ post['username'] }}">{{ post["fullname"] }}</a></div>
+                                        <div class="username"><a href="/profile/{{ post['username'] }}">@{{ post["username"] }}</a></div>
+                                    </div>
+                                </div>
+                                <div class="post-title"><a href="/post/{{ post['id'] }}">{{ post["title"] }}</a></div>
+                                <div class="post-timestamp">
+                                    <div>{{ post["date"] }}</div>
+                                    <div>{{ post["time"] }}</div>
+                                </div>
+                            </div>
+                            <div>
+                                {% if post['imagelocation'] %}
+                                    <div class="post-image">
+                                        <img src="/{{ post['imagelocation'] }}"></img>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="contents">
+                                <p style="white-space: pre-line">{{ post["contents"] }}</p>
+                            </div>
+                            <div class="tags">
+                                {% for tag in post["tags"] %}
+                                    <div class="tag">#{{ tag["interest"] }}</div>
+                                {% endfor %}
+                            </div>
+                            <div class="actions-post">
+                                <div class="btn-left">
+                                    <button name="like_button" value="{{ post['id'] }}" class="action-button action-button-post btn-big" type="button">
+                                        {% if post["status"] == 1 %}
+                                            <img src="/static/images/like.png">
+                                        {% else %}
+                                            <img src="/static/images/like-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                    <div class="like_count">
+                                        {{ post["likes"] }}
+                                    </div>
+                                    <button name="dislike_button" value="{{ post['id'] }}" class="action-button action-button-post btn-big" type="button">
+                                        {% if post["status"] == 2 %}
+                                            <img src="/static/images/dislike.png">
+                                        {% else %}
+                                            <img src="/static/images/dislike-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                    <a href="/post/{{ post['id'] }}#comments"><button name="comment_button" value="{{ post['id'] }}" comment_count="{{ post['comments'] }}" class="action-button action-button-post" type="button"><img src="/static/images/comments.png"></button></a>
+                                    <button name="share_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/share.png"></button>
+                                </div>
+                                <div class="warning" style="width: 40%; font-size: medium;"></div>
+                                <div class="btn-right">
+                                    <a href="/edit_post/{{ post['id'] }}"><button  name="edit_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
+                                    <button  name="delete_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/delete.png"> </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                <div id="delete_popup" class="popup">
+                    <h3>Title: <span id="popup_title"></span></h3>
+                    Likes: <span id="popup_likes"></span>
+                    Comments: <span id="popup_comments"></span>
+                    <h4>Delete post? This is an irreversible action.</h4>
+                    <form>
+                        <button class="btn btn-primary btn-prof" type="button" id="delete_yes" value="yes">Yes</button>
+                        <button class="btn btn-primary btn-prof" type="button" id="delete_no" value="no">No</button>
+                    </form>
+                </div>
             </div>
             <div class="right-part">
                 <div class="o-profile recommended-friends">
