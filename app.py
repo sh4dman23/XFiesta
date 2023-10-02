@@ -226,7 +226,10 @@ def index():
     # Then, get the trending posts
     feed = db.execute(
         """
-        SELECT DISTINCT id, user_id, likes, comments, title, contents, imagelocation, post_time, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM (
+        SELECT DISTINCT id, user_id, likes, comments, title, contents, imagelocation, post_time, -- Main data
+        (strftime('%Y', 'now') - strftime('%Y', post_time)) - (CASE WHEN strftime('%m', 'now') < strftime('%m', post_time) THEN 1 ELSE 0 END) AS years, -- Years since post
+        SELECT (CASE WHEN (strftime('%m', 'now') < strftime('%m', post_time)) THEN (12 - (strftime('%m', 'now') - strftime('%m', post_time))) ELSE (strftime('%m', 'now') - strftime('%m', post_time))) - (CASE WHEN strftime('%d', 'now') < strftime('%d', post_time) THEN 1 ELSE 0 END) AS months -- Months since post
+        FROM (
             SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
             RANDOM() AS random_order -- Add randomness to mixing
             FROM posts AS p

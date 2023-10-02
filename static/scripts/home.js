@@ -179,5 +179,131 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 5000);
 
     // Buttons in post section
-    document.
+    document.querySelector('.post-feed').addEventListener('click', async function(event) {
+        const target = event.target;
+
+        // Likes and dislikes
+        if (target.name == 'like_button' || target.name == 'dislike_button') {
+            const button = target;
+
+            const post_id = button.value;
+            const post = document.querySelector('[post_id="' + post_id + '"]');
+
+            const button_image = button.querySelector('img');
+            const like_count = post.querySelector('.like_count');
+
+            const like_button = post.querySelector('[name="like_button"]');
+            const dislike_button = post.querySelector('[name="dislike_button"]');
+
+            const warning = post.querySelector('.warning');
+
+            like_button.disabled = true;
+            dislike_button.disabled = true;
+
+            let status = post.getAttribute('status');
+            try {
+                const url = '/api/manage_likes';
+                const data = {
+                    'post_id': post_id,
+                    'action': 'like'
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded', // Content type is not json because this api was made when I used XMLHttpRequest and not Fetch
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: new URLSearchParams(data).toString()
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error processing data!');
+                }
+
+                const responseData = await response.json();
+
+                if (!responseData.result) {
+                    throw new Error('Error retrieving data!');
+                }
+
+                if (button.name == 'like_button') {
+                    dislike_button.querySelector('img').src = '/static/images/dislike-uncolored.png';
+                    if (status == 1) {
+                        // Unliked
+                        button_image.src = "/static/images/like-uncolored.png";
+                        like_count.innerHTML = parseInt(like_count.innerHTML) - 1;
+                        status = 0;
+                    } else {
+                        // Liked
+                        button_image.src = "/static/images/like.png";
+
+                        if (status == 0) {
+                            like_count.innerHTML = parseInt(like_count.innerHTML) + 1;
+                        } else {
+                            like_count.innerHTML = parseInt(like_count.innerHTML) + 2;
+                        }
+
+                        status = 1;
+                    }
+                } else if (button.name == 'dislike_button') {
+                    like_button.querySelector('img').src = '/static/images/like-uncolored.png';
+                    if (status == 2) {
+                        // Removed Dislike
+                        button_image.src = "/static/images/dislike-uncolored.png";
+                        like_count.innerHTML = parseInt(like_count.innerHTML) + 1;
+                        status = 0;
+                    } else {
+                        // Disliked
+                        button_image.src = "/static/images/dislike.png";
+
+                        if (status == 0) {
+                            like_count.innerHTML = parseInt(like_count.innerHTML) - 1;
+                        } else {
+                            like_count.innerHTML = parseInt(like_count.innerHTML) - 2;
+                        }
+
+                        status = 2;
+                    }
+                }
+
+            } catch(error) {
+                console.log(error);
+                warning.innerHTML = 'Your request could not be processed.'
+                warning.style.display = 'block';
+                setTimeout(function() {
+                    warning.style.display = 'none';
+                    warning.innerHTML = '';
+                }, 2000);
+            }
+
+            post.setAttribute('status', status);
+            like_button.disabled = false;
+            dislike_button.disabled = false;
+        }
+
+        // Share
+        if (target.name == 'share_button') {
+            const share_button = target;
+
+            const post_id = share_button.value;
+            const url = 'http://127.0.0.1:5000/post/' + post_id;
+
+            warning = document.querySelector('[post_id="' + post_id + '"]').querySelector('.warning');
+
+            navigator.clipboard.writeText(url).then(function() {
+                warning.style.color = 'green';
+                warning.innerHTML = 'Post link copied to clipboard!';
+                warning.style.display = 'block';
+            }, function(err) {
+                warning.style.color = 'red';
+                warning.innerHTML = 'Could not copy link to clipboard!';
+                warning.style.display = 'block';
+            });
+            setTimeout(function() {
+                warning.innerHTML = '';
+                warning.style.display = 'none';
+            }, 1500);
+        }
+    });
 });

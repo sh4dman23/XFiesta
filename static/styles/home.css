@@ -364,6 +364,14 @@ h6 {
     transform: translate(-50%, -50%);
 }
 
+.warning {
+    width: 40%;
+    height: 100%;
+    display: none;
+    font-size: medium;
+    color: red;
+}
+
 @media screen and (max-width: 768px) {
     .create-post {
         display: none;
