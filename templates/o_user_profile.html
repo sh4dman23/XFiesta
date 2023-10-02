@@ -36,11 +36,11 @@
                 {{ user["posts"] }}
             </div>
         </div>
-        <form>
+        <div class="p-buttons">
             <button class="btn btn-primary btn-prof" type="button" id="manage_friend"></button>
             <a href="/inbox/{{ user['id'] }}"><button class="btn btn-primary btn-prof" type="button" id="message">Message</button></a>
             <button class="btn btn-primary btn-prof" type="button" id="share_account">Share Account</button>
-        </form>
+        </div>
         <div id="status1" style="color: green;"></div>
         <div id="status2"></div>
         <div class="about-me">
@@ -54,7 +54,7 @@
             {% endif %}
         </div>
         {% if interests %}
-            <div class="p-header">Interests</div>
+            <p class="p-header">Interests</p>
             <div class="interests">
                 {% for interest in interests %}
                     <span class="interest">#{{ interest["interest"] }}</span>
@@ -71,15 +71,15 @@
         });
 
         function refresh_status() {
-                if (friend_status == 0) {
-                    friend.innerHTML = "Add Friend";
-                } else if (friend_status == 1) {
-                    friend.innerHTML = "Remove Friend";
-                } else if (friend_status == 2) {
-                    friend.innerHTML = "Cancel Request";
-                } else {
-                    friend.innerHTML = "Accept Request";
-                }
+            if (friend_status == 0) {
+                friend.innerHTML = "Add Friend";
+            } else if (friend_status == 1) {
+                friend.innerHTML = "Remove Friend";
+            } else if (friend_status == 2) {
+                friend.innerHTML = "Cancel Request";
+            } else {
+                friend.innerHTML = "Accept Request";
+            }
         }
     </script>
 {% endblock %}

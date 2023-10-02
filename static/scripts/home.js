@@ -305,5 +305,64 @@ document.addEventListener('DOMContentLoaded', function() {
                 warning.style.display = 'none';
             }, 1500);
         }
+
+        // Delete
+        if (target.name == 'delete_button') {
+            // Show popup
+            const popup = document.getElementById('delete_popup');
+            const post = document.querySelector('[post_id="' + target.value + '"]');
+            popup.querySelector('#popup_title').innerHTML = post.querySelector('.post-title').innerHTML;
+            popup.querySelector('#popup_likes').innerHTML = post.querySelector('.like_count').innerHTML;
+            popup.querySelector('#popup_comments').innerHTML = post.querySelector('[name = "comment_button"]').getAttribute('comment_count');
+
+            popup.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+
+            popup.querySelector('#delete_yes').onclick = async function() {
+                try {
+                    const url = '/api/delete_post';
+                    const data = {
+                        'post_id': post.getAttribute('post_id')
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: new URLSearchParams(data).toString()
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Error processing data!');
+                    }
+
+                    const responseData = await response.json();
+
+                    if (!responseData.result) {
+                        throw new Error('Error retrieving data!');
+                    }
+
+                    post.remove();
+                } catch(error) {
+                    console.log(error);
+                    const warning = post.querySelector('.warning');
+                    warning.innerHTML = 'Your request could not be processed!';
+                    warning.style.display = 'block';
+                    setTimeout(function() {
+                        warning.innerHTML = '';
+                        warning.style.display = 'none';
+                    }, 2000);
+                }
+                popup.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            };
+
+            popup.querySelector('#delete_no').onclick = function() {
+                popup.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            };
+        }
     });
 });

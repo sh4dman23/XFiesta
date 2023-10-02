@@ -26,6 +26,12 @@
     margin-left: 10px;
 }
 
+#search_targets {
+    display: block;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
 #search_options {
     margin-left: auto;
     margin-right: auto;

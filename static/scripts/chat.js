@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const timeDiv = create_element('div', null, 'name');
         timeDiv.style = 'font-weight: normal; margin-right: auto; margin-left: 10px';
-        timeDiv.innerHTML = data.message_time + ' ' + data.message_date;
+        timeDiv.innerHTML = data.message_date + ' ' + data.message_time;
         topDiv.appendChild(timeDiv);
 
         // Add delete buttons only if the message is from the user
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const printable = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!"#$%&' + "'()*+,-./:;<=>?@[\]^_`{|}~";
     // Automatically focuses on box when user presses a key in this window
     document.addEventListener('keyup', function(event) {
-        if (printable.includes(event.key) && document.activeElement != send_box) {
+        if (printable.includes(event.key) && !event.ctrlKey && document.activeElement != send_box) {
             send_box.value += event.key;
             send_box.focus();
         }

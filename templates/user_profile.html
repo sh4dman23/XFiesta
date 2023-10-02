@@ -34,6 +34,10 @@
                 {{ user["posts"] }}
             </div>
         </div>
+        <div class="p-buttons">
+            <a href="/profile_settings"><button class="btn btn-primary btn-prof" type="button">Edit Profile</button></a>
+            <a href="/account_settings"><button class="btn btn-primary btn-prof" type="button">Account Settings</button></a>
+        </div>
         <div class="about-me">
             <div class="p-header">About Me</div>
             {% if user["about_me"] %}
@@ -45,7 +49,7 @@
             {% endif %}
         </div>
         <div class="interests">
-            <div class="p-header">Interests</div>
+            <p class="p-header">Interests</p>
             {% if interests %}
                 {% for interest in interests %}
                     <span class="interest">#{{ interest["interest"] }}</span>
@@ -56,9 +60,5 @@
                 <a href="/profile_settings">Add interests?</a>
             {% endif %}
         </div>
-        <form>
-            <a href="/profile_settings"><button class="btn btn-primary btn-prof" type="button">Edit Profile</button></a>
-            <a href="/account_settings"><button class="btn btn-primary btn-prof" type="button">Account Settings</button></a>
-        </form>
     </div>
 {% endblock %}

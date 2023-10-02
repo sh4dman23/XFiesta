@@ -8,6 +8,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from helpers import login_required, apology, check_password
 import random
 import logging
+from datetime import datetime, timezone, timedelta
+from dateutil.relativedelta import relativedelta
+from pytz import UTC
 from markupsafe import Markup, escape
 
 
@@ -108,14 +111,22 @@ def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
+        tz_offset = request.form.get("user_timezone_offset")
 
         # Check for existing user and verify
         user_data = db.execute("SELECT id, hash FROM users WHERE username = ?;", username)
         if len(user_data) != 1 or not check_password_hash(user_data[0]["hash"], password):
             return apology("Invalid Username/Password!")
-        else:
-            session["user_id"] = user_data[0]["id"]
-            return redirect("/")
+
+        session["user_id"] = user_data[0]["id"]
+        try:
+            # The js returns the value as negative
+            tz_offset = -int(tz_offset) if tz_offset else 0
+            db.execute("UPDATE users SET timezone_offset = ? WHERE id = ?;", tz_offset, session["user_id"])
+        except Exception as e:
+            logging.error(e)
+
+        return redirect("/")
     else:
         return render_template("login.html")
 
@@ -215,7 +226,7 @@ def check_password_api():
 @login_required
 def index():
     # User data
-    user = db.execute("SELECT id, username, fullname, pfp_location FROM users WHERE id = ?;", session["user_id"])
+    user = db.execute("SELECT id, username, fullname, pfp_location, timezone_offset FROM users WHERE id = ?;", session["user_id"])
 
     # Checks if user has any user interests
     user_interest = db.execute("SELECT * FROM user_interests WHERE user_id = ?;", session["user_id"])
@@ -226,9 +237,7 @@ def index():
     # Then, get the trending posts
     feed = db.execute(
         """
-        SELECT DISTINCT id, user_id, likes, comments, title, contents, imagelocation, post_time, -- Main data
-        (strftime('%Y', 'now') - strftime('%Y', post_time)) - (CASE WHEN strftime('%m', 'now') < strftime('%m', post_time) THEN 1 ELSE 0 END) AS years, -- Years since post
-        SELECT (CASE WHEN (strftime('%m', 'now') < strftime('%m', post_time)) THEN (12 - (strftime('%m', 'now') - strftime('%m', post_time))) ELSE (strftime('%m', 'now') - strftime('%m', post_time))) - (CASE WHEN strftime('%d', 'now') < strftime('%d', post_time) THEN 1 ELSE 0 END) AS months -- Months since post
+        SELECT DISTINCT id, user_id, likes, comments, title, contents, imagelocation, post_time
         FROM (
             SELECT DISTINCT p.id, p.user_id, p.likes, p.comments, p.title, p.contents, p.imagelocation, p.post_time,
             RANDOM() AS random_order -- Add randomness to mixing
@@ -287,6 +296,18 @@ def index():
         status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post["id"], session["user_id"])
         post["status"] = status[0]["status"] if status else 0
 
+        # Time difference
+        difference = relativedelta(datetime.now(timezone.utc), UTC.localize(datetime.strptime(post["post_time"], "%Y-%m-%d %H:%M:%S")))
+        time_dict = {
+            "years": difference.years,
+            "months": difference.months,
+            "days": difference.days,
+            "hours": difference.hours,
+            "minutes": difference.seconds
+        }
+        post.update(time_dict)
+
+        # Tags
         tags = db.execute("SELECT i.interest FROM interests AS i JOIN post_tags AS pt ON i.id = pt.tag_id WHERE pt.post_id = ?;", post["id"])
         post["tags"] = tags
 
@@ -377,7 +398,6 @@ def update_notifications():
             "found": True,
             "notifications": notifications
         }
-        print(response)
         return jsonify(response), 200
 
 
@@ -691,10 +711,16 @@ def accept_friend_request():
 @app.route("/post/<post_id>")
 @login_required
 def post(post_id):
-    post = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE id = ?;", post_id)
+    post = db.execute("SELECT * FROM posts WHERE id = ?;", post_id)
     if not post_id or not post:
         return redirect("/posts")
     post = post[0]
+
+    # Get timestamps in user's local time
+    tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+    post_time = datetime.strptime(post["post_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+    post["date"] = post_time.strftime("%m-%d-%Y")
+    post["time"] = post_time.strftime("%I:%M %p")
 
     # Add tags
     tag_list = list()
@@ -715,10 +741,14 @@ def post(post_id):
     post["status"] = status[0]["status"] if status else 0
 
     # Get all comments for post
-    comments = db.execute("SELECT *, strftime('%d-%m-%Y', comment_time) AS date, strftime('%H:%M', comment_time) AS time FROM comments WHERE post_id = ? ORDER BY comment_time DESC;", post_id)
+    comments = db.execute("SELECT * FROM comments WHERE post_id = ? ORDER BY comment_time DESC;", post_id)
 
     if comments:
         for comment in comments:
+            comment_time = datetime.strptime(comment["comment_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+            comment["date"] = comment_time.strftime("%m-%d-%Y")
+            comment["time"] = comment_time.strftime("%I:%M %p")
+
             comment["owner"] = True if comment["user_id"] == session["user_id"] else False
 
             user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", comment["user_id"])
@@ -737,8 +767,14 @@ def post(post_id):
 @login_required
 def posts():
     # Get user's posts
-    my_posts = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE user_id = ? ORDER BY post_time DESC;", session["user_id"])
+    my_posts = db.execute("SELECT * FROM posts WHERE user_id = ? ORDER BY post_time DESC;", session["user_id"])
     for post in my_posts:
+        # Get timestamps in user's local time
+        tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+        post_time = datetime.strptime(post["post_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+        post["date"] = post_time.strftime("%m-%d-%Y")
+        post["time"] = post_time.strftime("%I:%M %p")
+
         tag_list = list()
         tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post["id"])
         for tag in tags:
@@ -752,8 +788,15 @@ def posts():
     user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", session["user_id"])
 
     # Get user's friends' posts
-    friend_posts = db.execute("SELECT *, strftime('%d-%m-%Y', post_time) AS date, strftime('%H:%M', post_time) AS time FROM posts WHERE user_id IN (SELECT user_id2 FROM friends WHERE user_id1 = ?) ORDER BY post_time DESC;", session["user_id"])
+    friend_posts = db.execute("SELECT * FROM posts WHERE user_id IN (SELECT user_id2 FROM friends WHERE user_id1 = ?) ORDER BY post_time DESC;", session["user_id"])
     for post in friend_posts:
+        # Get timestamps in user's local time
+        tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+        post_time = datetime.strptime(post["post_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+        post["date"] = post_time.strftime("%m-%d-%Y")
+        post["time"] = post_time.strftime("%I:%M %p")
+
+        # Get friend's info
         info = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", post["user_id"])
         post["fullname"] = info[0]["fullname"]
         post["username"] = info[0]["username"]
@@ -943,7 +986,6 @@ def edit_post(post_id):
         post = db.execute("SELECT * FROM posts WHERE id = ?;", post_id)
         tags = db.execute("SELECT interests.interest AS tag FROM interests JOIN post_tags ON post_tags.tag_id = interests.id WHERE post_id = ? ORDER BY tag;", post_id)
         if not post or not tags or post[0]["user_id"] != session["user_id"]:
-            print("b")
             return redirect("/posts")
 
         tag_list = list()
@@ -1100,7 +1142,6 @@ def add_comment():
     if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
-    print(data)
 
     if not data or not data.get("post_id") or not data.get("comment_contents") or len(data["comment_contents"]) > 640:
         return jsonify({"result": False}), 400
@@ -1108,7 +1149,7 @@ def add_comment():
         db.execute("BEGIN TRANSACTION;")
         comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], data["comment_contents"])
         db.execute("INSERT INTO user_comment_interactions(comment_id, user_id, status) VALUES(?, ?, 1);", comment_id, session["user_id"])
-        info = db.execute("SELECT strftime('%d-%m-%Y', comment_time) AS date, strftime('%H:%M', comment_time) AS time FROM comments WHERE id = ?;", comment_id)
+        info = db.execute("SELECT comment_time FROM comments WHERE id = ?;", comment_id)
         db.execute("UPDATE posts SET comments = comments + 1 WHERE id = ?;", data["post_id"])
         db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = ?;", session["user_id"])
         db.execute("COMMIT;")
@@ -1117,7 +1158,11 @@ def add_comment():
         logging.error(f"Error: {e}")
         return jsonify({"result": False}), 400
 
-    user = db.execute("SELECT fullname, username, pfp_location FROM users WHERE id = ?;", session["user_id"])
+    user = db.execute("SELECT fullname, username, pfp_location, timezone_offset FROM users WHERE id = ?;", session["user_id"])
+
+    comment_time = datetime.strptime(info[0]["comment_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=user[0]["timezone_offset"])
+    info[0]["date"] = comment_time.strftime("%m-%d-%Y")
+    info[0]["time"] = comment_time.strftime("%I:%M %p")
 
     # Give back sanitized comment
     comment = db.execute("SELECT contents FROM comments WHERE id = ?;", comment_id)
@@ -1195,8 +1240,6 @@ def manage_comment_likes():
     except Exception as e:
         db.execute("ROLLBACK;")
         logging.error(f"Error: {e}")
-        print(f"{e}")
-        print(data)
         return jsonify({"result": False})
 
     response = {
@@ -1297,7 +1340,7 @@ def inbox(user_id):
         # Get messages
         messages = db.execute(
             """
-            SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time
+            SELECT *
             FROM messages
             WHERE inbox_id = ?
             ORDER BY message_time;
@@ -1308,6 +1351,11 @@ def inbox(user_id):
         db.execute("UPDATE messages SET read_status = 'read' WHERE recipient_id = ? AND read_status = 'unread';", session["user_id"])
 
         for message in messages:
+            tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+            message_time = datetime.strptime(message["message_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+            message["date"] = message_time.strftime("%m-%d-%Y")
+            message["time"] = message_time.strftime("%I:%M %p")
+
             message_sender = db.execute("SELECT id, fullname, username FROM users WHERE id = ?;", message["sender_id"])
             message["sender_fullname"] = message_sender[0]["fullname"]
             message["sender_username"] = message_sender[0]["username"]
@@ -1321,7 +1369,6 @@ def send_message():
     if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
-    print(data)
 
     if not data or len(data["contents"]) < 1 or len(data["contents"]) > 640:
         return jsonify({"result": False}), 400
@@ -1348,8 +1395,14 @@ def send_message():
 
         # Add to messages
         message_id = db.execute("INSERT INTO messages(inbox_id, sender_id, recipient_id, contents) VALUES(?, ?, ?, ?);", inbox_id, session["user_id"], data["reciever_id"], data["contents"])
-        message = db.execute("SELECT strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE id = ?;", message_id)
+        message = db.execute("SELECT message_time FROM messages WHERE id = ?;", message_id)
         db.execute("COMMIT;")
+
+        # Get timestamp in users' local time
+        tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+        message_time = datetime.strptime(message[0]["message_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+        message[0]["date"] = message_time.strftime("%m-%d-%Y")
+        message[0]["time"] = message_time.strftime("%I:%M %p")
 
         response = {
             "result": True,
@@ -1482,7 +1535,6 @@ def check_message():
                 "message_date": message["date"],
                 "contents": escape(message["contents"])
             }
-            print(message_info["contents"])
             response["comment_list"].append(message_info)
         db.execute("COMMIT;")
         return jsonify(response), 200
@@ -1500,7 +1552,6 @@ def delete_message():
         abort(404)
 
     data = request.get_json()
-    print(data)
 
     if not data or not data.get("message_id"):
         return jsonify({"result": False}), 400

@@ -9,6 +9,7 @@ CREATE TABLE users (
     carnival INTEGER DEFAULT 0 NOT NULL,
     creation_time TIMESTAMP NOT NULL,
     pfp_location TEXT NOT NULL DEFAULT 'server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png',
+    timezone_offset INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(id)
 );
 

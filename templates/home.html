@@ -68,8 +68,24 @@
                                 </div>
                                 <div class="post-title"><a href="/post/{{ post['id'] }}">{{ post["title"] }}</a></div>
                                 <div class="post-timestamp">
-                                    <div>{{ post["date"] }}</div>
-                                    <div>{{ post["time"] }}</div>
+                                    <div>
+                                        {% if post["years"] > 0 %}
+                                                {{ post["years"] }}Y {{ post["months"] }}M ago
+                                        {% else %}
+                                            {% if post["months"] > 0 %}
+                                                    {{ post["months"] }}M {{ post["days"] }}D ago
+                                            {% else %}
+                                                {% if post["days"] > 0 %}
+                                                    {{ post["days"] }}D {{ post["hours"] }}H ago
+                                                {% else %}
+                                                    {% if post["hours"] > 0 %}
+                                                        {{ post["hours"] }}H
+                                                    {% endif %}
+                                                        {{ post["minutes"] }}M ago
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                             <div>
@@ -111,8 +127,10 @@
                                 </div>
                                 <div class="warning"></div>
                                 <div class="btn-right">
-                                    <a href="/edit_post/{{ post['id'] }}"><button  name="edit_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
-                                    <button  name="delete_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/delete.png"> </button>
+                                    {% if post["owner"] %}
+                                        <a href="/edit_post/{{ post['id'] }}"><button  name="edit_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
+                                        <button name="delete_button" value="{{ post['id'] }}" class="action-button action-button-post" type="button"><img src="/static/images/delete.png"> </button>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

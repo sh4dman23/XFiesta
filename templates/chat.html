@@ -30,7 +30,7 @@
                     <div class="top-part">
                         <div class="name" style="margin-right: 10px;"><a tabindex="-1" href="/profile/{{ message['sender_username'] }}">{{ message["sender_username"] }}</a></div>
                         <div class="name" style="font-weight: normal; margin-right: auto;">
-                            {{ message["time"] }} {{ message["date"] }}
+                            {{ message["date"] }} {{ message["time"] }}
                         </div>
                         {% if message["sender_id"] == session["user_id"] %}
                             <div class="actions">

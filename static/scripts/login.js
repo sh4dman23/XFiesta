@@ -63,6 +63,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Send user's timezone offset
+        const timestampHidden = document.createElement('input');
+        timestampHidden.hidden = true;
+        timestampHidden.name = 'user_timezone_offset';
+        timestampHidden.value = new Date().getTimezoneOffset();
+        document.querySelector('form').appendChild(timestampHidden);
         document.querySelector('form').submit();
     });
 });
