@@ -43,17 +43,14 @@
                                         <a class="mark-as-read" onclick="mark_as_read({{ notification['id'] }})">Mark as read</a>
                                     </li>
                             {% endfor %}
-                            <li>
-                                <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
-                            </li>
                         {% else %}
                             <p id="no_notifications">
                                 You have no unread notifications.
                             </p>
-                            <li>
-                                <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
-                            </li>
                         {% endif %}
+                        <li>
+                            <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
+                        </li>
                     </ul>
                   </div>
             </div>

@@ -11,12 +11,10 @@ import logging
 from datetime import datetime, timezone, timedelta
 from dateutil.relativedelta import relativedelta
 from pytz import UTC
-from markupsafe import Markup, escape
+from markupsafe import escape
 
 
 # Logs
-logging.getLogger("cs50").disabled = False
-
 log_file = "app.log"
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
@@ -63,6 +61,7 @@ app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
+# Define environmental variable in server's terminal
 app.secret_key = os.getenv("SECRET_KEY") or "b'\xf2F\xff\x9b4\xf1g\xa9\xe7\t\x81&{\xd5\x975\x87\xfb5y>\x0c1\xa1'"
 
 
@@ -468,6 +467,8 @@ def profile_settings():
         fullname = request.form.get("name")
         about_me = request.form.get("about_me")
         interest_list = request.form.getlist("interest")
+        changed = request.form.get("changed")
+        print(changed)
 
         if pfp and pfp != "":
                 # Sanitize and validate input
@@ -481,45 +482,48 @@ def profile_settings():
         try:
             db.execute("BEGIN TRANSACTION;")
             prev_pfp = db.execute("SELECT pfp_location FROM users WHERE id = ?;", session["user_id"])
-            # If the user had a pfp before
-            if prev_pfp[0]["pfp_location"]:
-                # First delete previous pfp (if it is not the default one)
-                if os.path.exists(prev_pfp[0]["pfp_location"]) and prev_pfp[0]["pfp_location"] != "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png":
-                    try:
-                        os.remove(prev_pfp[0]["pfp_location"])
-                    except OSError:
-                        pass
 
-                # Update if new
-                if pfp:
-                    dir = os.path.dirname(prev_pfp[0]["pfp_location"])
-                    if dir == os.path.join("server_hosted_files", "profile_pics", "default_profile_pic"):
-                        dir = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
-                        if not os.path.exists(dir):
+            # If pfp was changed ('true' since booleans in js may be treated as strings by the time it gets here)
+            if changed == True or changed == 'true':
+                if prev_pfp[0]["pfp_location"]:
+                    # First delete previous pfp (if it is not the default one)
+                    if os.path.exists(prev_pfp[0]["pfp_location"]) and prev_pfp[0]["pfp_location"] != "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png":
+                        try:
+                            os.remove(prev_pfp[0]["pfp_location"])
+                        except OSError:
+                            pass
+
+                    # Update if new
+                    if pfp:
+                        dir = os.path.dirname(prev_pfp[0]["pfp_location"])
+                        if dir == os.path.join("server_hosted_files", "profile_pics", "default_profile_pic"):
+                            dir = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
+                            if not os.path.exists(dir):
+                                try:
+                                    os.makedirs(dir)
+                                except OSError:
+                                    raise Exception("Could not make directory for pfp!")
+
+                        pfp_location = os.path.join(dir, str(pfp.filename))
+                        pfp.save(pfp_location)
+                    # Reset to default
+                    else:
+                        pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
+                else:
+                    # If uploaded, save else no change
+                    if pfp:
+                        pfp_location = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
+                        if not os.path.exists(pfp_location):
                             try:
-                                os.makedirs(dir)
+                                os.makedirs(pfp_location)
                             except OSError:
                                 raise Exception("Could not make directory for pfp!")
-
-                    pfp_location = os.path.join(dir, str(pfp.filename))
-                    pfp.save(pfp_location)
-                # Reset to default
-                else:
-                    pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
+                        pfp_location = os.path.join(pfp_location, str(pfp.filename))
+                        pfp.save(pfp_location)
+                    else:
+                        pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
             else:
-                # If uploaded, save else no change
-                if pfp:
-                    pfp_location = os.path.join("server_hosted_files", "profile_pics", str(session["user_id"]))
-                    if not os.path.exists(pfp_location):
-                        try:
-                            os.makedirs(pfp_location)
-                        except OSError:
-                            raise Exception("Could not make directory for pfp!")
-                    pfp_location = os.path.join(pfp_location, str(pfp.filename))
-                    pfp.save(pfp_location)
-                else:
-                    pfp_location = "server_hosted_files/profile_pics/default_profile_pic/user_profile_pic.png"
-
+                pfp_location = prev_pfp[0]["pfp_location"]
 
             db.execute("UPDATE users SET fullname = ?, about_me = ?, pfp_location = ? WHERE id = ?;", fullname, about_me, pfp_location, session["user_id"])
             db.execute("DELETE FROM user_interests WHERE user_id = ?;", session["user_id"])
@@ -674,6 +678,7 @@ def manage_friends():
             return jsonify({"result": "Removed Friend"}), 200
     except Exception as e:
         db.execute("ROLLBACK;")
+        logging.error(e)
         return jsonify({"result": "Failed"}), 400
 
 
@@ -720,6 +725,7 @@ def accept_friend_request():
 
     except Exception as e:
         db.execute("ROLLBACK;")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
 
@@ -999,7 +1005,7 @@ def edit_post(post_id):
 
         except Exception as e:
             db.execute("ROLLBACK;")
-            logging.error(f"An error occured: {e}")
+            logging.error(e)
             return apology(f"Your request could not be handled! - {e}")
 
         return redirect("/posts")
@@ -1117,7 +1123,7 @@ def manage_likes():
 
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"An error occurred: {str(e)}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
 
@@ -1173,7 +1179,7 @@ def delete_post():
         return jsonify({"result": True})
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"An error occurred: {str(e)}")
+        logging.error(e)
         return jsonify({"result": False})
 
 
@@ -1201,7 +1207,7 @@ def add_comment():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK")
-        logging.error(f"Error: {e}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
     # User's own info
@@ -1351,7 +1357,7 @@ def delete_comment():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"Error: {e}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
     return jsonify({"result": True}), 200
@@ -1492,7 +1498,7 @@ def send_message():
         return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"Error: {e}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
 
@@ -1613,7 +1619,7 @@ def check_message():
         return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"Error: {e}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
 
@@ -1641,7 +1647,7 @@ def delete_message():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(f"Error: {e}")
+        logging.error(e)
         return jsonify({"result": False}), 400
 
     return jsonify({"result": True}), 200
@@ -1812,6 +1818,9 @@ def remove_account():
                 except OSError:
                     pass
 
+            # Delete all notifications
+            db.execute("DELETE FROM notifications WHERE user_id = ?;", session["user_id"])
+
             # Delete remaining user data
             db.execute("DELETE FROM users WHERE id = ?;", session["user_id"])
 
@@ -1820,8 +1829,8 @@ def remove_account():
             return redirect("/welcome")
         except Exception as e:
             db.execute("ROLLBACK;")
-            logging.error(f"An error occurred: {str(e)}")
-            return apology(f"Account Deletion Failed! - {e}")
+            logging.error(e)
+            return apology("Account Deletion Failed!")
     else:
         return render_template("remove_account.html")
 

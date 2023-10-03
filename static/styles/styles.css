@@ -1,9 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans&display=swap');
+
 .navbar {
-    height: 12vh !important;
     background-color: transparent !important;
     border: none !important;
     padding-right: 12px !important;
-    font-family: 'Work Sans', sans-serif !important;
 }
 
 .navbar-brand img {
@@ -11,11 +11,39 @@
     user-select: none;
 }
 
+.nav-link {
+    position: relative;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+@media screen and (min-width: 768px) {
+    .nav-link::before {
+        content: '';
+        position: absolute;
+        top: 80%;
+        left: 10%;
+        width: 0;
+        height: 2px;
+        background: black;
+        transition: .3s;
+    }
+
+    .nav-link:hover::before {
+        width: 80%;
+    }
+}
+
 body {
     max-width: 100%;
     overflow-x: hidden;
     background-color: #b7c9e2;
     font-family: 'Work Sans', sans-serif;
+}
+
+.main {
+    font-weight: 400;
 }
 
 h1 {
@@ -87,6 +115,7 @@ button img {
     width: 100%;
     overflow: hidden;
     line-height: 0;
+    z-index: -1;
 }
 
 .wave-top svg {
@@ -114,10 +143,8 @@ input[type="text"], input[type="password"], textarea, .line-form, .textbox-area,
 
 
 .o-profile {
-    margin: 10vh;
+    margin: 5rem auto;
     width: 95%;
-    margin-left: auto;
-    margin-right: auto;
     background-color: aliceblue;
     border: 5px solid transparent;
     border-radius: 10px;
@@ -228,7 +255,8 @@ textarea {
     .navbar-collapse {
         background-color: rgba(255, 255, 255, 0.5);
         backdrop-filter: blur(2px);
-        z-index: 999; /* Make it have the highest z-index */
+        z-index: 100;
+        border-radius: 10px;
         pointer-events: none;
     }
     .navbar-collapse * {

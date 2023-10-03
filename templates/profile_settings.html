@@ -13,7 +13,7 @@
     <div class="container-main o-profile" style="display: block;">
         <h1 style="margin-bottom: 5vh;">Profile Settings</h1>
         <form action="/profile_settings" method="post" enctype="multipart/form-data">
-            <img id="preview" class="profile-pic" style="margin-bottom: 10px;" src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}">
+            <div class="profile-pic"><img id="preview" style="margin-bottom: 10px;" src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div>
             <div class="mb-3">
                 <label class="form-label">Change Profile Picture</label>
                 <input name="profile_pic" id="image_input" class="form-control profile_pic_upload" type="file" accept="image/png, image/jpeg">

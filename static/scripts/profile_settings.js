@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
         interestList.appendChild(label);
     }
 
+    let changed = false;
+
     const preview = document.getElementById('preview');
     const image = document.getElementById('image_input');
 
@@ -29,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
             const reader = new FileReader();
             reader.onload = function() {
+                changed = true;
                 preview.src = reader.result;
             };
             reader.readAsDataURL(image_input.files[0]);
@@ -83,6 +86,11 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
         submit_button.disabled = true;
         submit_button.classList.add('btn-submit--loading');
+        const inputC = document.createElement('input');
+        inputC.hidden = true;
+        inputC.name = 'changed';
+        inputC.value = changed;
+        document.querySelector('form').appendChild(inputC);
         document.querySelector('form').submit();
     });
 });

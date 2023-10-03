@@ -1,6 +1,9 @@
 .profile-pic {
     width: 100px;
     height: 100px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 5px;
 }
 
 .profile_pic_upload {

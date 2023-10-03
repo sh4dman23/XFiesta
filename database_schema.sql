@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id INTEGER NOT NULL,
     username TEXT NOT NULL,
     fullname TEXT,
@@ -12,14 +12,15 @@ CREATE TABLE users (
     timezone_offset INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY(id)
 );
+CREATE UNIQUE INDEX IF NOT EXISTS user_index ON users (id, username);
 
-CREATE TABLE interests (
+CREATE TABLE IF NOT EXISTS interests (
     id INTEGER NOT NULL,
     interest TEXT NOT NULL,
     PRIMARY KEY(id)
 );
 
-CREATE TABLE user_interests (
+CREATE TABLE IF NOT EXISTS user_interests (
     id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     interest_id INTEGER NOT NULL,
@@ -27,8 +28,9 @@ CREATE TABLE user_interests (
     FOREIGN KEY(user_id) REFERENCES users(id),
     FOREIGN KEY(interest_id) REFERENCES interests(id)
 );
+CREATE INDEX IF NOT EXISTS interest_index ON user_interests(user_id);
 
-CREATE TABLE friends (
+CREATE TABLE IF NOT EXISTS friends (
     id INTEGER NOT NULL,
     user_id1 INTEGER NOT NULL,
     user_id2 INTEGER NOT NULL,
@@ -37,8 +39,10 @@ CREATE TABLE friends (
     FOREIGN KEY(user_id1) REFERENCES users(id),
     FOREIGN KEY(user_id2) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS friend_index ON friends(user_id1);
+CREATE INDEX IF NOT EXISTS friend_index2 ON friends(user_id2);
 
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS posts (
     id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     likes INTEGER NOT NULL DEFAULT 0,
@@ -50,8 +54,9 @@ CREATE TABLE posts (
     PRIMARY KEY(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS post_index ON posts(user_id);
 
-CREATE TABLE post_tags (
+CREATE TABLE IF NOT EXISTS post_tags (
     id INTEGER NOT NULL,
     post_id INTEGER NOT NULL,
     tag_id INTEGER NOT NULL,
@@ -59,8 +64,10 @@ CREATE TABLE post_tags (
     FOREIGN KEY(post_id) REFERENCES posts(id),
     FOREIGN KEY(tag_id) REFERENCES interests(id)
 );
+CREATE INDEX IF NOT EXISTS post_tag_index ON post_tags(post_id);
+CREATE INDEX IF NOT EXISTS tag_index ON post_tags(tag_id);
 
-CREATE TABLE user_post_interactions (
+CREATE TABLE IF NOT EXISTS user_post_interactions (
     id INTEGER NOT NULL,
     post_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -70,8 +77,10 @@ CREATE TABLE user_post_interactions (
     FOREIGN KEY(post_id) REFERENCES posts(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS i_posts_index ON user_post_interactions(post_id);
+CREATE INDEX IF NOT EXISTS i_users_index ON user_post_interactions(user_id);
 
-CREATE TABLE comments (
+CREATE TABLE IF NOT EXISTS comments (
     id INTEGER NOT NULL,
     post_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -83,8 +92,10 @@ CREATE TABLE comments (
     FOREIGN KEY(post_id) REFERENCES posts(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS comment_post_index ON comments(post_id);
+CREATE INDEX IF NOT EXISTS comment_user_index ON comments(user_id);
 
-CREATE TABLE user_comment_interactions (
+CREATE TABLE IF NOT EXISTS user_comment_interactions (
     id INTEGER NOT NULL,
     comment_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
@@ -94,8 +105,10 @@ CREATE TABLE user_comment_interactions (
     FOREIGN KEY(comment_id) REFERENCES comments(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS i_comments_index ON user_comment_interactions(comment_id);
+CREATE INDEX IF NOT EXISTS i_c_users_index ON user_comment_interactions(user_id);
 
-CREATE TABLE inbox (
+CREATE TABLE IF NOT EXISTS inbox (
     id INTEGER NOT NULL,
     user_id1 INTEGER NOT NULL,
     user_id2 INTEGER NOT NULL,
@@ -104,8 +117,10 @@ CREATE TABLE inbox (
     FOREIGN KEY(user_id1) REFERENCES users(id)
     FOREIGN KEY(user_id2) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS inbox_user_index1 ON inbox(user_id1);
+CREATE INDEX IF NOT EXISTS inbox_user_index2 ON inbox(user_id2);
 
-CREATE TABLE messages (
+CREATE TABLE IF NOT EXISTS messages (
     id INTEGER NOT NULL,
     inbox_id INTEGER NOT NULL,
     sender_id INTEGER NOT NULL,
@@ -118,8 +133,9 @@ CREATE TABLE messages (
     FOREIGN KEY(sender_id) REFERENCES users(id),
     FOREIGN KEY(recipient_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS message_inbox_index ON messages(inbox_id);
 
-CREATE TABLE deleted_messages (
+CREATE TABLE IF NOT EXISTS deleted_messages (
     id INTEGER NOT NULL,
     inbox_id INTEGER NOT NULL,
     message_id INTEGER NOT NULL,
@@ -129,7 +145,7 @@ CREATE TABLE deleted_messages (
     FOREIGN KEY(sender_id) REFERENCES users(id)
 );
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
     id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     href TEXT NOT NULL,
@@ -139,3 +155,4 @@ CREATE TABLE notifications (
     PRIMARY KEY(id),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
+CREATE INDEX IF NOT EXISTS notification_user_index ON notifications(user_id);

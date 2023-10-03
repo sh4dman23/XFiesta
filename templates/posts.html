@@ -50,7 +50,7 @@
                             <div>
                                 {% if post['imagelocation'] %}
                                     <div class="post-image">
-                                        <img src="/{{ post['imagelocation'] }}"></img>
+                                        <img alt="{{ post['title'] }}" src="/{{ post['imagelocation'] }}"></img>
                                     </div>
                                 {% endif %}
                             </div>

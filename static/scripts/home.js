@@ -167,7 +167,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const mark_all_as_read = create_element('li');
                     mark_all_as_read.style.marginBottom = '5px';
                     mark_all_as_read.innerHTML = '<a class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;" onclick="mark_all_as_read();">Mark all as read</a>';
-                    document.querySelector('.dropdown-menu').appendChild(mark_all_as_read);
+                    const menu = document.querySelector('.dropdown-menu');
+                    menu.insertBefore(mark_all_as_read, menu.children[0]);
                 }
                 for (const notification of responseData.notifications) {
                     add_notification(notification);
