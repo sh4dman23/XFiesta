@@ -85,6 +85,8 @@ document.addEventListener("DOMContentLoaded", function() {
     // Final check for both passwords
     document.querySelector('form').addEventListener('submit', async function(event) {
         event.preventDefault();
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
 
         const warning = document.getElementById('warning3');
 
@@ -94,7 +96,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // First check if password matches, then check if the new password meets the criteria
         try {
             const url = '/api/check_password';
-            
+
             const data1 = {"password": password_old};
             const data2 = {"password": password_new};
 
@@ -133,6 +135,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     warning.innerHTML = '';
                     warning.style.display = 'none';
                 }, 2000);
+                submit_button.classList.remove('btn-submit--loading');
+                submit_button.disabled = false;
                 return;
             }
             if (!responseData2.check2) {
@@ -142,6 +146,8 @@ document.addEventListener("DOMContentLoaded", function() {
                     warning.innerHTML = '';
                     warning.style.display = 'none';
                 }, 2000);
+                submit_button.classList.remove('btn-submit--loading');
+                submit_button.disabled = false;
                 return;
             }
         } catch(error) {
@@ -152,6 +158,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 warning.innerHTML = '';
                 warning.style.display = 'none';
             }, 2000);
+            submit_button.classList.remove('btn-submit--loading');
+            submit_button.disabled = false;
             return;
         }
 

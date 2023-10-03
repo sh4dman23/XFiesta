@@ -90,6 +90,8 @@ h6 {
     text-align: center;
     margin-top: auto;
     margin-bottom: auto;
+    margin-left: auto;
+    margin-bottom: auto;
 }
 
 .dropdown-item {
@@ -139,7 +141,7 @@ h6 {
 }
 
 .right-part {
-    width: 35%;
+    width: 30%;
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
@@ -150,7 +152,9 @@ h6 {
     padding: 10px 5px;
     margin-bottom: 0px;
     max-height: 30rem;
-    overflow-x: auto;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
 }
 
 .user-info {
@@ -382,16 +386,35 @@ h6 {
 }
 
 @media screen and (max-width: 768px) {
+    .bar {
+        width: 100%;
+    }
+    
     .create-post {
         display: none;
     }
 
+    .main-contents {
+        width: 100%;
+    }
+
+    .post-feed {
+        width: 100%;
+        margin-left: auto;
+        margin-right: 0px;
+    }
+
     .user {
-        width: 40%;
+        width: 30%;
         justify-content: left;
     }
 
     .notifications {
-        width: 60% !important;
+        width: 70% !important;
+    }
+
+    .right-part, .recommended-friends, .open-chats {
+        width: 0%;
+        display: none;
     }
 }

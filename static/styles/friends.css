@@ -37,11 +37,14 @@
     width: 30%;
     margin-left: 1vw;
     justify-content: left;
+    margin-top: auto;
+    margin-bottom: auto;
 }
 
 .logo img {
     -webkit-user-drag: none;
     user-select: none;
+    pointer-events: none;
 }
 
 .logo-text {
@@ -123,9 +126,7 @@
         background-color: white;
     }
     .logo {
-        height: 2rem !important;
         width: auto;
-        margin-top: -1%;
         margin-left: 0rem;
     }
     .btn-tab {

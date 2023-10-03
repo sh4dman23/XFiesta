@@ -23,6 +23,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const preview = document.getElementById('preview');
     const image = document.getElementById('image_input');
 
+    const submit_button = document.querySelector('.btn-submit');
+
     image.onchange = function() {
         if (image.value.endsWith(".png") || image.value.endsWith(".jfif") || image.value.endsWith(".pjp") || image.value.endsWith(".jpg") || image.value.endsWith(".pjpeg") || image.value.endsWith(".jpeg")) {
             const reader = new FileReader();
@@ -75,5 +77,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 interestInput.value = "";
             }
         }
+    });
+
+    document.querySelector('form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
+        document.querySelector('form').submit();
     });
 });

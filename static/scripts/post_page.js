@@ -206,7 +206,11 @@ document.addEventListener('DOMContentLoaded', function() {
         post_button.disabled = true;
         let comment_content = comment_box.value;
 
-        if(comment_content.length < 1 || comment_content.length > 640) {
+        if (comment_content.trim() == "") {
+            comment_box.value = "";
+            post_button.disabled = false;
+            return;
+        } else if(comment_content.length > 640) {
             comment_warning.innerHTML = 'Invalid Input!';
             comment_warning.style.display = 'block';
 
@@ -214,6 +218,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 comment_warning.innerHTML = "";
                 comment_warning.style.display = 'none';
             }, 2000);
+
+            comment_box.value = "";
+            post_button.disabled = false;
+            return;
         }
 
         comment_box.value = "";

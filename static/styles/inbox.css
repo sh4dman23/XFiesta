@@ -19,6 +19,7 @@
 .logo img {
     -webkit-user-drag: none;
     user-select: none;
+    pointer-events: none;
 }
 
 .logo-text {
@@ -30,7 +31,7 @@
 
 .chat-box {
     width: 98%;
-    margin: 2vh auto;
+    margin: 10px auto;
     border: 5px solid transparent;
     border-radius: 10px;
     background-color: white;

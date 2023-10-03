@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(error) {
             console.log(error);
         }
-    }
+    };
 
     // Mark all notifications as read
     window.mark_all_as_read = async function() {
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch(error) {
             console.log(error);
         }
-    }
+    };
 
     // Add notifications
     function add_notification(notification) {
@@ -161,7 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // If there are no unread notifications,
                 if (parseInt(notification_count.innerHTML) == 0) {
-                    document.getElementById('no_notifications').remove();
+                    if (document.getElementById('no_notifications') != null) {
+                        document.getElementById('no_notifications').remove();
+                    }
                     const mark_all_as_read = create_element('li');
                     mark_all_as_read.style.marginBottom = '5px';
                     mark_all_as_read.innerHTML = '<a class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;" onclick="mark_all_as_read();">Mark all as read</a>';

@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
 
 {% block optional_c %}
-    <script src="/static/scripts/change_account.js"></script>
     <link rel="stylesheet" href="/static/styles/cred.css">
+    <script src="/static/scripts/change_account.js"></script>
 {% endblock %}
 
 {% block title %}
@@ -33,7 +33,9 @@
             <div id="warning2" style="color: red; display: none;"></div>
             <div id="warning3" style="color: red; display: none;"></div>
             <br>
-            <button class="btn btn-primary" id="submit_button" type="submit">Change</button>
+            <button class="btn btn-primary btn-prof btn-submit" id="submit_button" type="submit">
+                <span class="btn_text">Save Changes</span>
+            </button>
         </form>
     </div>
 

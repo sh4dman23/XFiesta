@@ -1,8 +1,12 @@
 document.addEventListener('DOMContentLoaded', function() {
     const warning = document.getElementById('warning');
+    const submit_button = document.querySelector('.btn-submit');
 
     document.querySelector('form').addEventListener('submit', async function(event) {
         event.preventDefault();
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
+
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
@@ -39,6 +43,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     warning.innerHTML = '';
                     warning.style.display = 'none';
                 }, 2000);
+                submit_button.classList.remove('btn-submit--loading');
+                submit_button.disabled = false;
                 return;
             }
 
@@ -49,6 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     warning.innerHTML = '';
                     warning.style.display = 'none';
                 }, 2000);
+                submit_button.classList.remove('btn-submit--loading');
+                submit_button.disabled = false;
                 return;
             }
 
@@ -60,6 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 warning.innerHTML = '';
                 warning.style.display = 'none';
             }, 2000);
+            submit_button.classList.remove('btn-submit--loading');
+            submit_button.disabled = false;
             return;
         }
 

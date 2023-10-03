@@ -355,6 +355,20 @@ def index():
     return render_template("home.html", user=user[0], feed=feed, notifications=notifications, notification_count=notification_count, recommendations=recommendations, open_chats=open_chats)
 
 
+# Notifications page
+@app.route("/notifications")
+@login_required
+def notifications():
+    notifications = db.execute("SELECT n.*, u.timezone_offset FROM notifications AS n JOIN users AS u ON n.user_id = u.id WHERE n.user_id = ? ORDER BY n.n_time DESC;", session["user_id"])
+    unread = db.execute("SELECT COUNT(id) AS count FROM notifications WHERE status = 'unread' AND user_id = ?;", session["user_id"])
+    for notification in notifications:
+        # User's local time
+        local_time = datetime.strptime(notification["n_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=notification["timezone_offset"])
+        notification["date"] = datetime.strftime(local_time, "%d-%m-%Y")
+        notification["time"] = datetime.strftime(local_time, "%I:%M %p")
+    return render_template("notifications.html", notifications=notifications, unread_notification_count = unread[0]["count"])
+
+
 # Marks notifications as read
 @app.route("/api/mark_notification_as_read", methods=["POST"])
 @login_required
@@ -386,8 +400,11 @@ def update_notifications():
         abort(404)
 
     data = request.get_json()
-    if not data or data.get("last_notif_id") is None:
+    if not data:
         return jsonify({"result": False}), 400
+
+    if data.get("last_notif_id") is None:
+        data["last_notif_id"] = 0
 
     notifications = db.execute("SELECT id, href, details FROM notifications WHERE status = 'unread' AND id > ? AND user_id = ?;", data["last_notif_id"], session["user_id"])
     if not notifications:
@@ -869,6 +886,15 @@ def createpost():
             db.execute("ROLLBACK;")
             return apology(f"{e}")
 
+        # Try to send notifications to friends (This is a low priority action and hence why it does not have a transaction)
+        user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+        friends = db.execute("SELECT user_id2 FROM friends WHERE user_id1 = ? AND friends = 1;", session["user_id"])
+        for friend in friends:
+            try:
+                db.execute("INSERT INTO notifications(user_id, href, details) VALUES (?, ?, ?);", friend["user_id2"], "/post/" + str(post_id), "@" + user[0]["username"] + " posted something new: '" + (title[0:len(title)] if len(title) <= 30 else (title[0:30] + '...')) + "'.")
+            except Exception as e:
+                pass
+
         return redirect("/posts")
     else:
         return render_template("create_a_post.html", list_of_tags=list_of_interests)
@@ -1016,6 +1042,10 @@ def manage_likes():
         db.execute("BEGIN TRANSACTION;")
         status = db.execute("SELECT status FROM user_post_interactions WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
 
+        # Get poster's info and send a notifications when the post is liked/unliked/disliked
+        poster = db.execute("SELECT user_id FROM posts WHERE id = ?;", post_id)
+        user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+
         # AJAX request from like manager
         if action == "like":
             if status:
@@ -1024,24 +1054,29 @@ def manage_likes():
                     db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " liked your post."
 
                 # Remove like status (unlike)
                 elif status[0]["status"] == 1:
                     db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " removed their like from your post."
 
                 # Disliked previously, now wants to like => Remove dislike(+1) and then like(+1)
                 elif status[0]["status"] == 2:
                     db.execute("UPDATE posts SET likes = likes + 2 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 1, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival + 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " liked your post."
+
 
             # Status is considered 0 (no interaction) and hence, like post
             else:
                 db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
                 db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(1, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
                 db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                details = "@" + user[0]["username"] + " liked your post."
 
         # AJAX request from dislike manager
         else:
@@ -1051,25 +1086,32 @@ def manage_likes():
                     db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 2, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " disliked your post."
 
                 # Remove dislike status
                 elif status[0]["status"] == 2:
                     db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 0, timestamp = CURRENT_TIMESTAMP WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " removed their dislike from your post."
 
                 # Liked previously, now wants to dislike => Remove like(-1) and then dislike(-1)
                 elif status[0]["status"] == 1:
                     db.execute("UPDATE posts SET likes = likes - 2 WHERE id = ?;", post_id)
                     db.execute("UPDATE user_post_interactions SET status = 2 WHERE post_id = ? AND user_id = ?;", post_id, session["user_id"])
                     db.execute("UPDATE users SET carnival = carnival - 4 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                    details = "@" + user[0]["username"] + " disliked your post."
 
             # Status is considered 0 (no interaction) and hence, dislike post
             else:
                 db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?;", post_id)
                 db.execute("INSERT INTO user_post_interactions(status, post_id, user_id, timestamp) VALUES(2, ?, ?, CURRENT_TIMESTAMP);", post_id, session["user_id"])
                 db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM posts WHERE id = ?);", post_id)
+                details = "@" + user[0]["username"] + " disliked your post."
 
+        # Send notification
+        if poster[0]["user_id"] != session["user_id"]:
+            db.execute("INSERT INTO notifications(user_id, href, details) VALUES(?, ?, ?);", poster[0]["user_id"], "/post/" + str(post_id), details)
         db.execute("COMMIT;")
         return jsonify({"result": True}), 200
 
@@ -1143,11 +1185,15 @@ def add_comment():
         abort(404)
     data = request.get_json()
 
-    if not data or not data.get("post_id") or not data.get("comment_contents") or len(data["comment_contents"]) > 640:
+    if not data or not data.get("post_id") or len(data["comment_contents"]) > 640:
         return jsonify({"result": False}), 400
+
+    # Empty comment, don't add
+    if not data.get("comment_contents") or data["comment_contents"].strip() == "":
+        return jsonify({"result": False}), 200
     try:
         db.execute("BEGIN TRANSACTION;")
-        comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], data["comment_contents"])
+        comment_id = db.execute("INSERT INTO comments(post_id, user_id, contents, likes) VALUES(?, ?, ?, 1);", data["post_id"], session["user_id"], str(data["comment_contents"]).strip())
         db.execute("INSERT INTO user_comment_interactions(comment_id, user_id, status) VALUES(?, ?, 1);", comment_id, session["user_id"])
         info = db.execute("SELECT comment_time FROM comments WHERE id = ?;", comment_id)
         db.execute("UPDATE posts SET comments = comments + 1 WHERE id = ?;", data["post_id"])
@@ -1158,14 +1204,24 @@ def add_comment():
         logging.error(f"Error: {e}")
         return jsonify({"result": False}), 400
 
+    # User's own info
     user = db.execute("SELECT fullname, username, pfp_location, timezone_offset FROM users WHERE id = ?;", session["user_id"])
+
+    # Post owner's info
+    poster = db.execute("SELECT user_id FROM posts WHERE id = ?;", data["post_id"])
 
     comment_time = datetime.strptime(info[0]["comment_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=user[0]["timezone_offset"])
     info[0]["date"] = comment_time.strftime("%m-%d-%Y")
     info[0]["time"] = comment_time.strftime("%I:%M %p")
 
     # Give back sanitized comment
-    comment = db.execute("SELECT contents FROM comments WHERE id = ?;", comment_id)
+    comment = db.execute("SELECT post_id, contents FROM comments WHERE id = ?;", comment_id)
+
+    # Send notification
+    if poster[0]["user_id"] != session["user_id"]:
+        details = "@" + user[0]["username"] + " commented on your post: '" + (data["comment_contents"][0:30] if len(data["comment_contents"]) <= 30 else (data["comment_contents"][0:30] + '...')) + "'."
+        db.execute("INSERT INTO notifications(user_id, href, details) VALUES(?, ?, ?);", poster[0]["user_id"], "/post/" + str(comment[0]["post_id"]) + "#" + str(comment_id), details)
+
     response = {
         "result": True,
         "comment_id": comment_id,
@@ -1186,7 +1242,7 @@ def manage_comment_likes():
     if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
-    if not data or data["action"] not in ["like", "dislike"]:
+    if not data or not data.get("comment_id") or not data.get("action") or data["action"] not in ["like", "dislike"]:
         return jsonify({"result": False})
     try:
         db.execute("BEGIN TRANSACTION;")
@@ -1194,9 +1250,16 @@ def manage_comment_likes():
         # Get interaction status
         status = db.execute("SELECT status FROM user_comment_interactions WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
 
+        # Get user's info
+        user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
+
+        # Get commentators' info
+        commentator = db.execute("SELECT user_id FROM comments WHERE id = ?;", data["comment_id"])
+
         if data["action"] == "like":
             # Add like(+1)
             if not status or status[0]["status"] == 0:
+                details = "@" + user[0]["username"] + " liked your comment."
                 db.execute("UPDATE comments SET likes = likes + 1 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
 
@@ -1206,17 +1269,20 @@ def manage_comment_likes():
                     db.execute("UPDATE user_comment_interactions SET status = 1 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
             # Remove like(-1)
             elif status[0]["status"] == 1:
+                details = "@" + user[0]["username"] + " removed their like from your comment."
                 db.execute("UPDATE comments SET likes = likes - 1 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival - 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
                 db.execute("UPDATE user_comment_interactions SET status = 0 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
             # Remove dislike(+1) and then add like(+1) => +2
             else:
+                details = "@" + user[0]["username"] + " liked your comment."
                 db.execute("UPDATE comments SET likes = likes + 2 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival + 2 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
                 db.execute("UPDATE user_comment_interactions SET status = 1 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
         else:
             # Add dislike
             if not status or status[0]["status"] == 0:
+                details = "@" + user[0]["username"] + " disliked your comment."
                 db.execute("UPDATE comments SET likes = likes - 1 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival - 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
                 if not status:
@@ -1225,11 +1291,13 @@ def manage_comment_likes():
                     db.execute("UPDATE user_comment_interactions SET status = 2 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
             # Remove dislike(+1)
             elif status[0]["status"] == 2:
+                details = "@" + user[0]["username"] + " removed their dislike from your comment."
                 db.execute("UPDATE comments SET likes = likes + 1 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival + 1 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
                 db.execute("UPDATE user_comment_interactions SET status = 0 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
             # Remove like(-1) and then add dislike(-1) => -2
             else:
+                details = "@" + user[0]["username"] + " disliked your comment."
                 db.execute("UPDATE comments SET likes = likes - 2 WHERE id = ?;", data["comment_id"])
                 db.execute("UPDATE users SET carnival = carnival - 2 WHERE id = (SELECT user_id FROM comments WHERE id = ?);", data["comment_id"])
                 db.execute("UPDATE user_comment_interactions SET status = 2 WHERE comment_id = ? AND user_id = ?;", data["comment_id"], session["user_id"])
@@ -1241,6 +1309,11 @@ def manage_comment_likes():
         db.execute("ROLLBACK;")
         logging.error(f"Error: {e}")
         return jsonify({"result": False})
+
+    # Send notification
+    if commentator[0]["user_id"] != session["user_id"]:
+        post = db.execute("SELECT post_id FROM comments WHERE id = ?;", data["comment_id"])
+        db.execute("INSERT INTO notifications(user_id, href, details) VALUES(?, ?, ?);", commentator[0]["user_id"], "/post/" + str(post[0]["post_id"]) + "#" + str(data["comment_id"]), details)
 
     response = {
             "result": True,
@@ -1394,7 +1467,7 @@ def send_message():
             db.execute("UPDATE inbox SET messages = messages + 1 WHERE id = ?;", inbox_id)
 
         # Add to messages
-        message_id = db.execute("INSERT INTO messages(inbox_id, sender_id, recipient_id, contents) VALUES(?, ?, ?, ?);", inbox_id, session["user_id"], data["reciever_id"], data["contents"])
+        message_id = db.execute("INSERT INTO messages(inbox_id, sender_id, recipient_id, contents) VALUES(?, ?, ?, ?);", inbox_id, session["user_id"], data["reciever_id"], str(data["contents"]).strip())
         message = db.execute("SELECT message_time FROM messages WHERE id = ?;", message_id)
         db.execute("COMMIT;")
 
@@ -1413,7 +1486,7 @@ def send_message():
             "message_id": message_id,
             "message_time": message[0]["time"],
             "message_date": message[0]["date"],
-            "contents": escape(data["contents"])
+            "contents": escape(str(data["contents"]).strip())
         }
 
         return jsonify(response), 200

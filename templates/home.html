@@ -43,10 +43,16 @@
                                         <a class="mark-as-read" onclick="mark_as_read({{ notification['id'] }})">Mark as read</a>
                                     </li>
                             {% endfor %}
+                            <li>
+                                <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
+                            </li>
                         {% else %}
                             <p id="no_notifications">
                                 You have no unread notifications.
                             </p>
+                            <li>
+                                <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
+                            </li>
                         {% endif %}
                     </ul>
                   </div>
@@ -150,9 +156,9 @@
             <div class="right-part">
                 <div class="o-profile recommended-friends">
                     <h6>People Who Share Your Interests</h6>
-                    <div class="user-info">
                         {% if recommendations %}
                             {% for person in recommendations %}
+                            <div class="user-info">
                                 <div class="top-part">
                                     <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
                                     <div style="margin-left: 0.5vw; text-align: left;">
@@ -168,6 +174,7 @@
                                         <img src="/static/images/comments.png" style="height: 1.4rem;">
                                     </button></a>
                                 </div>
+                            </div>
                             {% endfor %}
                         {% else %}
                             <div style="text-align: center; margin-left: auto; margin-right: auto;">
@@ -176,7 +183,6 @@
                                 Get it? No?
                             </div>
                         {% endif %}
-                    </div>
                 </div>
                 <div class="o-profile open-chats">
                     <h6>New Messages?</h6>

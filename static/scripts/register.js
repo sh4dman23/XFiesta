@@ -85,6 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Final check for password
     document.querySelector('form').addEventListener('submit', async function(event) {
         event.preventDefault();
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
 
@@ -122,9 +124,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 warning3.innerHTML = 'Password must contain at least 1 lowercase alphabet,<br> 1 uppercase alphabet, 1 digit and 1 special character!';
                 warning3.style.display = 'block';
                 setTimeout(function() {
-                    warning3.innerHTML = '';
-                    warning3.style.display = 'none';
+                    warning.innerHTML = '';
+                    warning.style.display = 'none';
                 }, 2000);
+                submit_button.classList.remove('btn-submit--loading');
+                submit_button.disabled = false;
                 return;
             }
 
@@ -136,6 +140,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 warning3.innerHTML = '';
                 warning3.style.display = 'none';
             }, 2000);
+            submit_button.classList.remove('btn-submit--loading');
+            submit_button.disabled = false;
             return;
         }
 
