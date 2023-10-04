@@ -63,12 +63,13 @@ db = SQL("sqlite:///xfiesta.db")
 if os.path.exists("database_schema.sql"):
     with open("database_schema.sql", "r") as schema:
         sqlFile = schema.read()
-        
+
     sqlCommands = sqlFile.split(";")
     for sqlCommand in sqlCommands:
         try:
             db.execute(sqlCommand)
         except Exception as e:
+            # This may log "ERROR: missing statement" at the end of creating tables and indexes, but thats just because of the final new-line, so no worries
             logging.error(str(e))
 
 # Add interests if they already do not exist in db
@@ -106,6 +107,7 @@ def page_not_found(e):
 
 # Allow access to server hosted files
 @app.route('/server_hosted_files/<path:directory>/<path:filename>')
+@login_required
 def get_image(directory, filename):
     # Root directory
     root_dir = './server_hosted_files'
@@ -130,7 +132,8 @@ def welcome():
 
 @app.route("/login", methods=["POST", "GET"])
 def login():
-    session.clear()
+    if session.get("user_id"):
+        return redirect("/")
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -326,7 +329,7 @@ def index():
             "months": difference.months,
             "days": difference.days,
             "hours": difference.hours,
-            "minutes": difference.seconds
+            "minutes": difference.minutes
         }
         post.update(time_dict)
 
@@ -596,7 +599,7 @@ def change_account():
         password_new = request.form.get("password_new")
         password_new2 = request.form.get("password_new2")
 
-        if not username or not password_old or not password_new or not password_new2 or password_new != password_new2 or not check_password(password_new):
+        if not username or not password_old or (password_new and (not password_new2 or password_new != password_new2 or not check_password(password_new))):
             return apology("Invalid Submission!")
 
         check = db.execute("SELECT id FROM users WHERE username = ?;", username)
@@ -607,7 +610,8 @@ def change_account():
         if not check_password_hash(user_prev[0]["hash"], password_old):
             return apology("Incorrect Password!")
 
-        db.execute("UPDATE users SET username = ?, hash = ? WHERE id = ?;", username, generate_password_hash(password_new), session["user_id"])
+        # Updates if password isn't empty or anyother almost empty string (which may be sent by change_account when only updating username)
+        db.execute("UPDATE users SET username = ?, hash = ? WHERE id = ?;", username, generate_password_hash(password_new if (password_new is not None and check_password(password_new)) else password_old), session["user_id"])
         return redirect("/profile")
     else:
         user = db.execute("SELECT username FROM users WHERE id = ?;", session["user_id"])
@@ -1539,13 +1543,10 @@ def check_deleted():
         return jsonify({"result": True, "deleted": False}), 200
 
     try:
-        db.execute("BEGIN TRANSACTION;")
-
         # Get deleted messages not sent by user
         deleted_messages = db.execute("SELECT message_id FROM deleted_messages WHERE inbox_id = ? AND sender_id != ?;", data["inbox_id"], session["user_id"])
 
         if not deleted_messages:
-            db.execute("COMMIT;")
             return jsonify({"result": True, "deleted": False}), 200
 
         # Clear deleted messages sent by the other user
@@ -1558,10 +1559,8 @@ def check_deleted():
             "last_message_id": last_message[0]["id"] if last_message else None,
             "deleted_messages": deleted_messages
         }
-        db.execute("COMMIT;")
         return jsonify(response), 200
     except Exception as e:
-        db.execute("ROLLBACK;")
         logging.error(str(e))
         return jsonify({"result": False}), 400
 
@@ -1597,10 +1596,16 @@ def check_message():
         db.execute("BEGIN TRANSACTION;")
 
         # Check if any new messages have been added
-        messages = db.execute("SELECT *, strftime('%d-%m', message_time) AS date, strftime('%H:%M', message_time) AS time FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC;", inbox_id, data["last_message_id"])
+        messages = db.execute("SELECT * FROM messages WHERE inbox_id = ? AND id > ? ORDER BY message_time ASC;", inbox_id, data["last_message_id"])
         if not messages:
             db.execute("COMMIT;")
             return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
+
+        tz_offset = db.execute("SELECT timezone_offset FROM users WHERE id = ?;", session["user_id"])
+        for message in messages:
+            time = datetime.strptime(message["message_time"], "%Y-%m-%d %H:%M:%S") + timedelta(minutes=tz_offset[0]["timezone_offset"])
+            message["date"] = datetime.strftime(time, "%d-%m-%Y")
+            message["time"] = datetime.strftime(time, "%I:%M %p")
 
         # Else, we know we have new messages
         response = {

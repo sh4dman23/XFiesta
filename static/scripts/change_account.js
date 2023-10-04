@@ -56,7 +56,10 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('warning3').innerHTML = "";
             bool3 = true;
         }
-        if (bool1 && bool2 && bool3) {
+
+        if ((bool1 && bool2 && bool3) || (password1 == '' && password2 == '')) {
+            document.getElementById('warning2').style.display = "none";
+            document.getElementById('warning3').style.display = "none";
             submit_button.disabled = false;
         }
     }
@@ -75,9 +78,12 @@ document.addEventListener("DOMContentLoaded", function() {
             document.getElementById('warning3').style.display = "none";
             document.getElementById('warning3').innerHTML = "";
             bool3 = true;
-            if (bool1 && bool2 && bool3) {
-                submit_button.disabled = false;
-            }
+        }
+
+        if ((bool1 && bool2 && bool3) || (password1 == '' && password2 == '')) {
+            document.getElementById('warning2').style.display = "none";
+            document.getElementById('warning3').style.display = "none";
+            submit_button.disabled = false;
         }
     }
 
@@ -117,19 +123,20 @@ document.addEventListener("DOMContentLoaded", function() {
                 })
             ]);
 
-            if (!response1.ok || !response2.ok) {
+            if (!response1.ok || (password_new && !response2.ok)) {
                 throw new Error("Error sending data!");
             }
 
             const [responseData1, responseData2] = await Promise.all([response1.json(), response2.json()]);
 
-            if (!responseData1.result || !responseData2.result) {
+            if (!responseData1.result || (password_new && !responseData2.result)) {
                 throw new Error("Error processing data!");
             }
 
             if (!responseData1.check1) {
                 warning.innerHTML = 'Incorrect Password!';
                 warning.style.display = 'block';
+                console.log(responseData1, responseData2);
                 setTimeout(function() {
                     warning.innerHTML = '';
                     warning.style.display = 'none';
@@ -138,7 +145,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 submit_button.disabled = false;
                 return;
             }
-            if (!responseData2.check2) {
+            if (password_new && !responseData2.check2) {
                 warning.innerHTML = 'Password must contain at least 1 lowercase alphabet,<br> 1 uppercase alphabet, 1 digit and 1 special character!';
                 warning.style.display = 'block';
                 setTimeout(function() {

@@ -1,12 +1,7 @@
-os
-logging
 cs50
+werkzeug
 flask
 flask_session
-werkzeug.utils
-werkzeug.security
-random
-datetime
-dateutil.relativedelta
+python-dateutil
 pytz
 markupsafe

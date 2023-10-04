@@ -170,7 +170,7 @@ input[type="text"], input[type="password"], textarea, .line-form, .textbox-area,
     object-fit: cover;
     -webkit-user-drag: none;
     user-select: none;
-    image-rendering: optimizeQuality;
+    image-rendering: optimizeSpeed;
 }
 
 .btn-prof {
@@ -271,10 +271,5 @@ textarea {
 
     input[type="text"], input[type="password"], textarea, .line-form, .textbox-area, .form-control {
         width: 70vw !important;
-    }
-
-    .about-me {
-        word-wrap: break-word;
-        width: 100% !important;
     }
 }

@@ -49,7 +49,7 @@
                             </p>
                         {% endif %}
                         <li>
-                            <a href="/notifications" class="mark-as-read" style="text-align: center; width: 100% !important; margin-right: 0% !important;">See all</a>
+                            <a href="/notifications" class="mark-as-read notif-see-all">See all</a>
                         </li>
                     </ul>
                   </div>
@@ -157,15 +157,11 @@
                             {% for person in recommendations %}
                             <div class="user-info">
                                 <div class="top-part">
-                                    <a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">
-                                        <div class="profile-pic" style="width: 2.5rem; height: 2.5rem;">
-                                            <img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}">
-                                        </div>
-                                        <div style="margin-left: 0.5vw; text-align: left;">
-                                            <div class="name" style="font-size: 0.9rem;">{{ person['fullname'] }}</div>
-                                            <div class="username" style="font-size: 0.7rem;">@{{ person['username'] }}</div>
-                                        </div>
-                                    </a>
+                                    <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                    <div style="margin-left: 0.5vw; text-align: left;">
+                                        <div class="name" style="font-size: 1rem;"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">{{ person['fullname'] }}</a></div>
+                                        <div class="username" style="font-size: 0.7rem;"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">@{{ person['username'] }}</a></div>
+                                    </div>
                                 </div>
                                 <div class="actions">
                                     <a href="/profile/{{ person['username'] }}"><button class="action-button">
@@ -184,25 +180,26 @@
                         {% endif %}
                 </div>
                 <div class="o-profile open-chats">
-                    <h6>New Messages?</h6>
-                    <div class="user-info">
+                    <h6>New Messages</h6>
                         {% if open_chats %}
                             {% for chat in open_chats %}
-                                <div class="top-part">
-                                    <a href="/profile/{{ chat['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if chat['pfp_location'] %} /{{ chat['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
-                                    <div style="margin-left: 0.5vw; text-align: left;">
-                                        <div class="name" style="font-size: 1rem;"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">{{ chat['fullname'] }}</a></div>
-                                        <div class="username" style="font-size: 0.7rem;"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">@{{ chat['username'] }}</a></div>
+                                <div class="user-info">
+                                    <div class="top-part">
+                                        <a href="/profile/{{ chat['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if chat['pfp_location'] %} /{{ chat['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                        <div style="margin-left: 0.5vw; text-align: left;">
+                                            <div class="name" style="font-size: 1rem;"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">{{ chat['fullname'] }}</a></div>
+                                            <div class="username" style="font-size: 0.7rem;"><a href="/profile/{{ chat['username'] }}" style="text-decoration: none; color: inherit;">@{{ chat['username'] }}</a></div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="actions">
-                                    <div class="action-button">
-                                        <a href="/inbox/{{ chat['user_id'] }}"><button class="action-button" type="button"><img alt="chat" src="/static/images/comments.png" style="height: 1.4rem;"></button></a>
+                                    <div class="actions">
+                                        <div class="action-button">
+                                            <a href="/inbox/{{ chat['user_id'] }}"><button class="action-button" type="button"><img alt="chat" src="/static/images/comments.png" style="height: 1.4rem;"></button></a>
+                                        </div>
                                     </div>
                                 </div>
                             {% endfor %}
                         {% else %}
-                            <div style="text-align: center; margin-left: auto; margin-right: auto;">
+                            <div class="user-info" style="display: block; text-align: center; margin: auto;">
                                 No open chats for now!
                             </div>
                         {% endif %}

@@ -28,7 +28,7 @@
             {% for message in messages %}
                 <div name="message" id="{{ message['id'] }}" class="message-container">
                     <div class="top-part">
-                        <div class="name" style="margin-right: 10px;"><a tabindex="-1" href="/profile/{{ message['sender_username'] }}">{{ message["sender_username"] }}</a></div>
+                        <div class="name name-chat" style="margin-right: 10px;"><a tabindex="-1" href="/profile/{{ message['sender_username'] }}">{{ message["sender_username"] }}</a></div>
                         <div class="name" style="font-weight: normal; margin-right: auto;">
                             {{ message["date"] }} {{ message["time"] }}
                         </div>

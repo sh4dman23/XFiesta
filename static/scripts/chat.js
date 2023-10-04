@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Adds element to chat container
-    function add_comment(data) {
+    function add_message(data) {
         const messageDiv = create_element('div', 'message', 'message-container');
         messageDiv.style.display = 'none';
         messageDiv.id = data.message_id;
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nameDiv.appendChild(anchor);
         topDiv.appendChild(nameDiv);
 
-        const timeDiv = create_element('div', null, 'name');
+        const timeDiv = create_element('div', null, 'name name-chat');
         timeDiv.style = 'font-weight: normal; margin-right: auto; margin-left: 10px';
         timeDiv.innerHTML = data.message_date + ' ' + data.message_time;
         topDiv.appendChild(timeDiv);
@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Add comment at the bottom
             send_box.value = "";
-            add_comment(responseData);
+            add_message(responseData);
 
             // Update inbox id if not found
             if (inbox_id == null) {
@@ -251,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Add the new comment(s)
                 for (let comment_data of responseData.comment_list) {
                     if (!last_message_sent_id || comment_data.message_id != last_message_sent_id) {
-                        add_comment(comment_data);
+                        add_message(comment_data);
                     }
                 }
 

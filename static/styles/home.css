@@ -120,6 +120,12 @@ h6 {
     cursor: pointer;
 }
 
+.notif-see-all {
+    width: 100% !important;
+    text-align: center;
+    margin-right: 0% !important;
+}
+
 .main-contents {
     width: 95%;
     margin-left: auto;
@@ -161,6 +167,7 @@ h6 {
     width: 95%;
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 5px;
     background-color: white;
     padding: 5px 10px;
     border: 2px solid transparent;
