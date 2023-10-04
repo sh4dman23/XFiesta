@@ -110,3 +110,17 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
 
 - ### Requirements:
     [requirements.txt](requirements.txt) contains all python packages required to run this application.
+
+- ### Templates:
+    The [templates](/templates) directory contains the templates for the HTML for all pages on this web application. Jinja was used for templating, that comes alongside flask.
+
+- ### Static:
+    The [static](/static) directory contains all static images (in [images](/static/images)), CSS (in [styles](/static/styles)) and JavaScript (in [scripts](/static/scripts)) files.
+
+- ### Server Hosted Files:
+    XFiesta hosts the user uploaded files in the server within the [server_hosted_files](/server_hosted_files) directory.
+
+## Video Demonstration
+A brief demonstration of this project can be found in [YouTube](https://www.youtube.com).
+
+#### I am Shadman Shahab, and this was CS50!
