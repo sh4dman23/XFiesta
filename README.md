@@ -47,7 +47,7 @@ pip install -r requirements.txt
 ### User Profiling
 ![Profile](readme_images/profile.png)
 
-In XFiesta, users are mainly identified by their username, which is unique for every user. Besides an username, every user has a name, an about me (which shows default value on the profile page, if the user chooses to keep it empty), a profile picture and interests. Interests have a core functionality in XFiesta, as the user's feed personalization, as well as friend recommendations are done based on their interests. Interests are fixed and users are able to add and remove interests from their profile. While users have the option to leave their 'About Me' and 'Interests' sections empty, we encourage them to provide information in these fields. Doing so enhances the personalization experience and helps connect users with like-minded individuals. Users also have a "carnival points" count which works similar to "karma" in reddit.
+In XFiesta, users are mainly identified by their username, which is unique for every user. Besides a username, every user has a name, an about me (which shows default value on the profile page, if the user chooses to keep it empty), a profile picture and interests. Interests have a core functionality in XFiesta, as the user's feed personalization, as well as friend recommendations are done based on their interests. Interests are fixed and users are able to add and remove interests from their profile. While users have the option to leave their 'About Me' and 'Interests' sections empty, we encourage them to provide information in these fields. Doing so enhances the personalization experience and helps connect users with like-minded individuals. Users also have a "carnival points" count which works similar to "karma" in reddit.
 
 ### Friends
 ![Friends](readme_images/friends.png)
@@ -63,7 +63,7 @@ XFiesta has been designed to facilitate connections and strengthen relationships
 - #### Manage Friends List:
     Users can efficiently manage their list of friends. They can add new friends by accepting requests, and they also have the flexibility to remove friends from their list if they wish to do so. Moreover, users will also recieve friend recommendations for people with similar interests.
 
-Users will receive notifications and updates from their friends' activities, enhancing their real-time connection with the social network. Friends also play a significant role in personalizing and diversifying the user's feed, making it a more engaging experience.
+Users will receive notifications and updates from their friends' activities, enhancing their real-time connection within the social network. Friends also play a significant role in personalizing and diversifying the user's feed, making it a more engaging experience.
 
 ### Posts and Comments
 | Posts page                                   | Post                                         |
@@ -88,7 +88,7 @@ For messsages, I have used a simple AJAX script that queries the server to check
 ### Notifications
 ![Notification Page](readme_images/notification_page.png)
 
-Notifications sent to users are stored in the database, and can be seen by the user in the notifications page. Some notifications however get removed depending on it's cause. For example, if an user sent a friend request to another user and then canceled that request, that notification would be automatically removed.
+Notifications sent to users are stored in the database, and can be seen by the user in the notifications page. Some notifications however get removed depending on it's cause. For example, if a user sent a friend request to another user and then canceled that request, that notification would be automatically removed.
 
 ![Notifications](readme_images/notifications.png)
 
@@ -121,6 +121,6 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
     XFiesta hosts the user uploaded files in the server within the [server_hosted_files](/server_hosted_files) directory.
 
 ## Video Demonstration
-(I haven't finished it yet).     
+(I haven't finished it yet).
 
 #### I am Shadman Shahab, and this was CS50!
