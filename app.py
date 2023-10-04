@@ -13,14 +13,14 @@ from dateutil.relativedelta import relativedelta
 from pytz import UTC
 from markupsafe import escape
 
-
 # Logs
+if not os.path.exists("app.log"):
+    with open("app.log", "w") as file:
+        pass
 log_file = "app.log"
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
-# Configure cs50 to start using site's database
-db = SQL("sqlite:///xfiesta.db")
-
+logging.getLogger("cs50").disabled = False
 
 list_of_interests = [
     "Gaming",
@@ -52,8 +52,32 @@ list_of_interests = [
     "Art",
     "Fashion",
     "Food",
-    "Fitness"
+    "Fitness",
+    "Computer"
 ]
+
+# Configure cs50 to start using site's database
+db = SQL("sqlite:///xfiesta.db")
+
+# Create required tables if they do not exist
+if os.path.exists("database_schema.sql"):
+    with open("database_schema.sql", "r") as schema:
+        sqlFile = schema.read()
+        
+    sqlCommands = sqlFile.split(";")
+    for sqlCommand in sqlCommands:
+        try:
+            db.execute(sqlCommand)
+        except Exception as e:
+            logging.error(str(e))
+
+# Add interests if they already do not exist in db
+for interest in list_of_interests:
+    # Check if it exists
+    exists = db.execute("SELECT id FROM interests WHERE interest = ?;", interest)
+    if not exists:
+        # Add it
+        db.execute("INSERT INTO interests(interest) VALUES(?);", interest)
 
 app = Flask(__name__)
 
@@ -123,7 +147,7 @@ def login():
             tz_offset = -int(tz_offset) if tz_offset else 0
             db.execute("UPDATE users SET timezone_offset = ? WHERE id = ?;", tz_offset, session["user_id"])
         except Exception as e:
-            logging.error(e)
+            logging.error(str(e))
 
         return redirect("/")
     else:
@@ -387,7 +411,7 @@ def mark_as_read():
             db.execute("UPDATE notifications SET status = 'read' WHERE id = ?;", data["id"])
         return jsonify({"result": True}), 200
     except Exception as e:
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -539,7 +563,7 @@ def profile_settings():
             db.execute("COMMIT;")
         except Exception as e:
             db.execute("ROLLBACK;")
-            logging.error(e)
+            logging.error(str(e))
             return apology("Invalid Submission!")
 
         return redirect("/profile")
@@ -678,7 +702,7 @@ def manage_friends():
             return jsonify({"result": "Removed Friend"}), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": "Failed"}), 400
 
 
@@ -725,7 +749,7 @@ def accept_friend_request():
 
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -1005,7 +1029,7 @@ def edit_post(post_id):
 
         except Exception as e:
             db.execute("ROLLBACK;")
-            logging.error(e)
+            logging.error(str(e))
             return apology(f"Your request could not be handled! - {e}")
 
         return redirect("/posts")
@@ -1123,7 +1147,7 @@ def manage_likes():
 
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -1179,7 +1203,7 @@ def delete_post():
         return jsonify({"result": True})
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False})
 
 
@@ -1207,7 +1231,7 @@ def add_comment():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
     # User's own info
@@ -1357,7 +1381,7 @@ def delete_comment():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
     return jsonify({"result": True}), 200
@@ -1498,7 +1522,7 @@ def send_message():
         return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -1538,7 +1562,7 @@ def check_deleted():
         return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -1619,7 +1643,7 @@ def check_message():
         return jsonify(response), 200
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
 
@@ -1647,7 +1671,7 @@ def delete_message():
         db.execute("COMMIT;")
     except Exception as e:
         db.execute("ROLLBACK;")
-        logging.error(e)
+        logging.error(str(e))
         return jsonify({"result": False}), 400
 
     return jsonify({"result": True}), 200
@@ -1829,7 +1853,7 @@ def remove_account():
             return redirect("/welcome")
         except Exception as e:
             db.execute("ROLLBACK;")
-            logging.error(e)
+            logging.error(str(e))
             return apology("Account Deletion Failed!")
     else:
         return render_template("remove_account.html")

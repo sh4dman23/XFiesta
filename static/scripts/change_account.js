@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", function() {
         var aj = new XMLHttpRequest();
         aj.onreadystatechange = function() {
             if (aj.readyState == 4 && aj.status == 200) {
-                console.log(aj.responseText);
                 var data = JSON.parse(aj.responseText);
 
                 if ((username != old_username && data.result) || (username == old_username)) {

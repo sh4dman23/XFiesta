@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const contents = document.getElementById('contents');
     const tagInput = document.getElementById("tagInput");
     const tagList = document.getElementById("tagList");
-    const submit_button = document.getElementById("submit");
+    const submit_button = document.getElementById("submit_button");
 
 
     // Remove current image button
@@ -130,7 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Check tags
-    submit_button.onclick = function() {
+    submit_button.addEventListener('click', function(event) {
+        event.preventDefault();
+
         if (tagList.innerHTML == "") {
             document.getElementById('warning3').innerHTML = "Include at least one tag with your post!";
             return false;
@@ -154,7 +156,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
 
-        console.log(post_id);
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
 
         // Send post_id to server
         const postid_input = document.createElement('input');
@@ -162,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
         postid_input.name = 'post_id';
         postid_input.value = post_id;
 
-        document.getElementById('form').appendChild(postid_input);
-        return true;
-    };
+        document.querySelector('form').appendChild(postid_input);
+        document.querySelector('form').submit();
+    });
 });

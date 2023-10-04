@@ -157,11 +157,15 @@
                             {% for person in recommendations %}
                             <div class="user-info">
                                 <div class="top-part">
-                                    <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 2.5rem; height: 2.5rem;"><img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
-                                    <div style="margin-left: 0.5vw; text-align: left;">
-                                        <div class="name" style="font-size: 0.9rem;"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">{{ person['fullname'] }}</a></div>
-                                        <div class="username" style="font-size: 0.7rem;"><a href="/profile/{{ person['username'] }}"  style="text-decoration: none; color: inherit;">@{{ person['username'] }}</a></div>
-                                    </div>
+                                    <a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">
+                                        <div class="profile-pic" style="width: 2.5rem; height: 2.5rem;">
+                                            <img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}">
+                                        </div>
+                                        <div style="margin-left: 0.5vw; text-align: left;">
+                                            <div class="name" style="font-size: 0.9rem;">{{ person['fullname'] }}</div>
+                                            <div class="username" style="font-size: 0.7rem;">@{{ person['username'] }}</div>
+                                        </div>
+                                    </a>
                                 </div>
                                 <div class="actions">
                                     <a href="/profile/{{ person['username'] }}"><button class="action-button">
@@ -174,10 +178,8 @@
                             </div>
                             {% endfor %}
                         {% else %}
-                            <div style="text-align: center; margin-left: auto; margin-right: auto;">
-                                No <b>interest</b>-ing people today.
-                                <br>
-                                Get it? No?
+                            <div class="user-info" style="display: block; text-align: center; margin: auto;">
+                                No <b>interest</b>-ing people today. <br> Get it? No?
                             </div>
                         {% endif %}
                 </div>

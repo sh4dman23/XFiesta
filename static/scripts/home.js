@@ -156,9 +156,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
 
-                console.log(data);
-                console.log(responseData);
-
                 // If there are no unread notifications,
                 if (parseInt(notification_count.innerHTML) == 0) {
                     if (document.getElementById('no_notifications') != null) {

@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const contents = document.getElementById('contents');
     const tagInput = document.getElementById("tagInput");
     const tagList = document.getElementById("tagList");
-    const submit_button = document.getElementById("submit");
+    const submit_button = document.getElementById("submit_button");
 
     title.addEventListener('keyup', function() {
         if (title.value.length == 70) {
@@ -114,7 +114,9 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Check tags
-    submit_button.onclick = function() {
+    submit_button.addEventListener('click', function() {
+        event.preventDefault();
+
         if (tagList.innerHTML == "") {
             document.getElementById('warning3').innerHTML = "Include at least one tag with your post!";
             return false;
@@ -137,5 +139,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
             return false;
         }
-    };
+
+        submit_button.disabled = true;
+        submit_button.classList.add('btn-submit--loading');
+        document.querySelector('form').submit();
+    });
 });

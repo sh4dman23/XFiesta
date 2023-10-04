@@ -74,11 +74,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Send user's timezone offset
-        const timestampHidden = document.createElement('input');
-        timestampHidden.hidden = true;
-        timestampHidden.name = 'user_timezone_offset';
-        timestampHidden.value = new Date().getTimezoneOffset();
-        document.querySelector('form').appendChild(timestampHidden);
+        const tz_offset = document.createElement('input');
+        tz_offset.hidden = true;
+        tz_offset.name = 'user_timezone_offset';
+        tz_offset.value = new Date().getTimezoneOffset();
+        document.querySelector('form').appendChild(tz_offset);
         document.querySelector('form').submit();
     });
 });

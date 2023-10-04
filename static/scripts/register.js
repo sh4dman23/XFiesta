@@ -116,10 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error('Error processing data');
             }
 
-            if (!responseData.user_exists) {
-                console.log(responseData);
-            }
-
             if (!responseData.check2) {
                 warning3.innerHTML = 'Password must contain at least 1 lowercase alphabet,<br> 1 uppercase alphabet, 1 digit and 1 special character!';
                 warning3.style.display = 'block';
