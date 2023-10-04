@@ -104,5 +104,9 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
 ## Project Files
 - ### Main Files:
     [app.py](app.py) contains the main code for running the web application on the server. [helpers.py](helpers.py) provides 2 functions and 1 decorator which are frequently used to run the app.
+
 - ### Database:
     [xfiesta.db](xfiesta.db) stores all site data in a database, which is a core part of the functionality of XFiesta. [database_schema.sql](database_schema.sql) provides the structure of tables and indexes on necessary columns of the tables in the database, which is used to run a script that ensures all required tables and indexes are present in the database on server initialization.
+
+- ### Requirements:
+    [requirements.txt](requirements.txt) contains all python packages required to run this application.
