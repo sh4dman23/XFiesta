@@ -13,9 +13,9 @@ By Shadman Shahab
 ## Description
 ![XFiesta](readme_images/home.jpg)
 
-XFiesta is my final project for [CS50x](https://www.edx.org/learn/computer-science/harvard-university-cs50-s-introduction-to-computer-science). It is my attempt at creating a simple and minimalistic yet functional web-based social media platform, using Python's Flask module. As of now, XFiesta has various features like user profiling, a friend system, chat functionality, creating posts, post comments, post and comment interactions etc.
+XFiesta is my final project for [CS50x](https://cs50.edx.org/). It is my attempt at creating a simple and minimalistic yet functional web-based social media platform, using Python's Flask module. As of now, XFiesta has various features like user profiling, a friend system, chat functionality, creating posts, post comments, post and comment interactions etc.
 
-The program uses Python and Flask to handle all server-sided code and uses SQLite3 to handle database management. All features in this project that use real-time updates like chats and notifications use AJAX requests on intervals to query the server for information; WebSockets have not been used in this project.
+The application uses Python and Flask to handle all server-sided functionality and utilizes SQLite3 for database management. For real-time features such as chats and notifications, the current implementation relies on periodic AJAX requests to query the server for updates. WebSocket has not been integrated into this project.
 
 ## Installation and Dependencies
 To run this application, first clone this repository on your device via either of the following commands:
@@ -47,7 +47,7 @@ pip install -r requirements.txt
 ### User Profiling
 ![Profile](readme_images/profile.png)
 
-In XFiesta, users are mainly identified by their username, which is unique for every user. Besides a username, every user has a name, an about me (which shows default value on the profile page, if the user chooses to keep it empty), a profile picture and interests. Interests have a core functionality in XFiesta, as the user's feed personalization, as well as friend recommendations are done based on their interests. Interests are fixed and users are able to add and remove interests from their profile. While users have the option to leave their 'About Me' and 'Interests' sections empty, we encourage them to provide information in these fields. Doing so enhances the personalization experience and helps connect users with like-minded individuals. Users also have a "carnival points" count which works similar to "karma" in reddit.
+In XFiesta, users are mainly identified by their username, which is unique for every user. Besides a username, every user has a name, an about me (which shows default value on the profile page, if the user chooses to keep it empty), a profile picture and interests. Interests have a core functionality in XFiesta, as the user's feed personalization, as well as friend recommendations are done based on their interests. Interests are fixed and users are able to add and remove interests from their profile. While users have the option to leave their "About Me" and "Interests" sections empty, we encourage them to provide information in these fields. Doing so enhances the personalization experience and helps connect users with like-minded individuals. Users also have a "carnival points" count which works similar to "karma" in reddit.
 
 ### Friends
 ![Friends](readme_images/friends.png)

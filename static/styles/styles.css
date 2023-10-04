@@ -26,7 +26,7 @@
         left: 10%;
         width: 0;
         height: 2px;
-        background: black;
+        background: #666464;
         transition: .3s;
     }
 
