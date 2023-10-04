@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link rel="stylesheet" href="/static/styles/search.css">
+    <script src="/static/scripts/search.js"></script>
+{% endblock %}
+
+{% block title %}
+    Search
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div>
+            <div class="bar">
+                <div id="search_targets" class="btn-group" role="group">
+                    <button name="users" type="button" class="btn btn-primary btn-prof">Users</button>
+                    <button name="posts" type="button" class="btn btn-primary">Posts</button>
+                </div>
+                <div id="search_options">
+                    <div id="users_search_options" class="btn-group" role="group" style="display: block;">
+                        <button name="users_all" type="button" class="btn btn-primary btn-prof">All</button>
+                        <button name="users_friends" type="button" class="btn btn-primary">Friends</button>
+                    </div>
+                    <div id="posts_search_options" class="btn-group" role="group" style="display: none;">
+                        <button name="posts_all" type="button" class="btn btn-primary">All</button>
+                        <button name="posts_mine" type="button" class="btn btn-primary">Mine</button>
+                        <button name="posts_friends" type="button" class="btn btn-primary">Friends'</button>
+                    </div>
+                </div>
+                <input id="search_bar" class="form-control" maxlength="640" autofocus autocomplete="off" type="text" placeholder="Search">
+                <button id="search_button" class="btn btn-primary btn-prof search" type="button">Search</button>
+            </div>
+            <div id="warning" style="display: none;"></div>
+        </div>
+        <div class="o-profile">
+            <div id="resultContainer" class="search_results">
+                <div id="no_results">Your search results will appear here.</div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,57 @@
+.post-image {
+    color: black !important;
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    width: 40vw !important;
+}
+
+input[type="text"], textarea, #contents {
+    width: 40vw !important;
+}
+
+label {
+    text-align: left;
+}
+
+#preview {
+    position: relative !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    background-color: lightgray;
+    width: 30vw !important;
+    height: auto !important;
+}
+
+.remove_preview_button {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: center;
+}
+
+#tagList {
+    display: flex;
+    margin-top: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+input[type="checkbox"] {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+@media screen and (max-width: 768px) {
+    .post-image {
+        width: 80vw !important;
+    }
+    input[type="text"], textarea, #contents {
+        width: 80vw !important;
+    }
+    #preview {
+        width: 80vw !important;
+        height: auto !important;
+    }
+}
+

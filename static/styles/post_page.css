@@ -1,0 +1,120 @@
+.post-box {
+    margin-top: 2rem !important;
+}
+
+.comments {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+    background-color: white;
+    width: 85vw;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    text-align: left;
+    padding: .5rem 2rem;
+}
+
+.comments:hover {
+    background-color: #f0f0f0;
+}
+
+.comment {
+    margin-bottom: 1rem;
+}
+
+.profile-pic {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid transparent;
+}
+
+.names {
+    margin-left: 0.5vw;
+    text-align: left;
+    font-size: smaller;
+}
+
+.comment-button {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: white;
+    margin-left: 3px;
+    margin-right: 3px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.comment-button img {
+    height: 3rem;
+    width: auto;
+    object-fit: cover;
+    -webkit-user-drag: none;
+    user-select: none;
+    pointer-events: none;
+}
+
+.comment-button:hover {
+    box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+}
+
+.comment-button:active {
+    transform: translateY(2px);
+}
+
+.btn-small {
+    height: 1rem !important;
+}
+
+.comment-like-count {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 0.2rem;
+    margin-right: 0.2rem;
+    font-size: small;
+}
+
+.add-a-comment {
+    font-size: 1rem;
+}
+
+.comment-post {
+    display: flex;
+    justify-content: right;
+    margin-top: 1rem;
+    margin-right: 1rem;
+}
+
+#comment_post_button {
+    background-color: #b7c9e2;
+    padding: 4px 8px;
+    font-size: 15px;
+    border: 2px solid transparent;
+    border-radius: 10px;
+}
+
+.comment-box {
+    width: 100% !important;
+    resize: none;
+}
+
+.ts-right {
+    width: auto !important;
+    margin-left: auto !important;
+    margin-right: 0% !important;
+}
+
+.warning {
+    text-align: center;
+    width: 40%;
+    color: red;
+    display: none;
+}
+
+@media screen and (max-width: 768px) {
+    .comments:hover {
+        background-color: white;
+    }
+}

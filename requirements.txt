@@ -1,0 +1,7 @@
+cs50
+werkzeug
+flask
+flask_session
+python-dateutil
+pytz
+markupsafe

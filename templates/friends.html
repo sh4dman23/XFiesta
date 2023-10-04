@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/styles/friends.css" rel="stylesheet">
+    <script src="/static/scripts/friends.js"></script>
+{% endblock %}
+
+{% block title %}
+    Friends
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div class="bar">
+            <div id="friends-logo" class="logo">
+                <div>
+                    <img src="/static/images/friends-icon.png" alt="friend-logo" width="40px">
+                    <span class="logo-text">Friends</span>
+                </div>
+            </div>
+            <div id="tabs">
+                <div>
+                    <button id="all_button" class="btn btn-primary btn-prof btn-tab">All Friends</button>
+                    <button id="req_button" class="btn btn-primary btn-prof btn-tab">Friend Requests</button>
+                    <button id="recom_button" class="btn btn-primary btn-prof btn-tab">Recommendations</button>
+                </div>
+            </div>
+        </div>
+        <div class="o-profile" style="margin-top: 2.5vh;">
+            <div id="all_tab">
+                <h3>All Friends</h3>
+                {% if friends %}
+                    {% for friend in friends %}
+                        <div id="{{ friend['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <a href="/profile/{{ friend['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="{% if friend['pfp_location'] %} /{{ friend['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <a href="/inbox/{{ friend['id'] }}"><button name="chat_button"class="action-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/comments.png" style="width: 50%;"></button></a>
+                                <button name="remove_button" class="action-button" value="{{ friend['id'] }}" type="button"><img src="/static/images/remove-friend.png" style="width: 2.5rem; height: auto;"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    You don't seem to have added any friends yet!
+                {% endif %}
+            </div>
+            <div id="req_tab" style="display: none">
+                <h3>Friend Requests</h3>
+                {% if requests %}
+                    {% for friend in requests %}
+                        <div id="{{ friend['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <a href="/profile/{{ friend['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="{% if friend['pfp_location'] %} /{{ friend['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">{{ friend['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ friend['username'] }}" style="text-decoration: none; color: inherit;">@{{ friend['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button name="accept_button" class="action-button" value="{{ friend['id'] }}" type="button"><img style="width: 1.7rem; height: auto;" src="/static/images/Tick-logo.png"></button>
+                                <button name="reject_button" class="action-button" value="{{ friend['id'] }}" type="button"><img style="width: 1.7rem; height: auto;" src="/static/images/cross-logo.png"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    You don't have any friend requests!
+                {% endif %}
+            </div>
+            <div id="recom_tab" style="display: none">
+                <h3>Friend Recommendations</h3>
+                {% if recommendations %}
+                    {% for person in recommendations %}
+                        <div id="{{ person['id'] }}" class="friend-box">
+                            <div class="friend-info">
+                                <a href="/profile/{{ person['username'] }}"><div class="profile-pic" style="width: 50px; height: 50px;"><img src="{% if person['pfp_location'] %} /{{ person['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                <div style="margin-left: 0.5vw; text-align: left;">
+                                    <div class="name"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">{{ person['fullname'] }}</a></div>
+                                    <div class="username"><a href="/profile/{{ person['username'] }}" style="text-decoration: none; color: inherit;">@{{ person['username'] }}</a></div>
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button name="add_recommendation_button" class="action-button" value="{{ person['id'] }}" type="button"><img style="width: 2.5rem; height: auto;" src="/static/images/add-friend.png"></button>
+                                <button name="remove_recommendation_button" class="action-button" value="{{ person['id'] }}" type="button"><img style="width: 1.7rem; height: auto;" src="/static/images/cross-logo.png"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    This place seems empty!
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

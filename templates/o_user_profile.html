@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <link href="/static/styles/profiles.css" rel="stylesheet">
+    <script src="/static/scripts/ou_profiles.js"></script>
+{% endblock %}
+
+{% block title %}
+    {{ user["username"] }}'s Profile
+{% endblock %}
+
+{% block main %}
+    <div class="container-main o-profile">
+        <div class="profile-pic"><img src="{% if user['pfp_location'] %} /{{ user['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div>
+        <div class="fullname">
+            <div class="p-header">{{ user["fullname"] }}</div>
+        </div>
+        <div class="username">
+            @{{ user["username"] }}
+        </div>
+        <div class="stats">
+            <div class="stat">
+                Friends
+                <div id="friends">
+                    {{ user["friends"] }}
+                </div>
+            </div>
+            <div class="stat">
+                Carnivals
+                <br>
+                {{ user["carnival"] }}
+            </div>
+            <div class="stat">
+                Posts
+                <br>
+                {{ user["posts"] }}
+            </div>
+        </div>
+        <div class="p-buttons">
+            <button class="btn btn-primary btn-prof" type="button" id="manage_friend"></button>
+            <a href="/inbox/{{ user['id'] }}"><button class="btn btn-primary btn-prof" type="button" id="message">Message</button></a>
+            <button class="btn btn-primary btn-prof" type="button" id="share_account">Share Account</button>
+        </div>
+        <div id="status1" style="color: green;"></div>
+        <div id="status2"></div>
+        <div class="about-me">
+            <div class="p-header">About Me</div>
+            {% if user["about_me"] %}
+                <p style="white-space: pre-line">{{ user["about_me"] }}</p>
+            {% else %}
+                Hello there! It seems like I haven't shared much about myself yet.
+                <br>
+                Life is full of stories, and I look forward to sharing mine with you soon. Stay tuned!
+            {% endif %}
+        </div>
+        {% if interests %}
+            <p class="p-header">Interests</p>
+            <div class="interests">
+                {% for interest in interests %}
+                    <span class="interest">#{{ interest["interest"] }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+    <script>
+        let friend = document.getElementById('manage_friend');
+        let friend_status = {{ friends_status }};
+        let user_id = {{ user["id"] }};
+        document.addEventListener('DOMContentLoaded', function() {
+            refresh_status();
+        });
+
+        function refresh_status() {
+            if (friend_status == 0) {
+                friend.innerHTML = "Add Friend";
+            } else if (friend_status == 1) {
+                friend.innerHTML = "Remove Friend";
+            } else if (friend_status == 2) {
+                friend.innerHTML = "Cancel Request";
+            } else {
+                friend.innerHTML = "Accept Request";
+            }
+        }
+    </script>
+{% endblock %}

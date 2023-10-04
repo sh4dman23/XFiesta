@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+
+{% block optional_c %}
+    <script src="/static/scripts/post_page.js"></script>
+    <link rel="stylesheet" href="/static/styles/posts.css">
+    <link rel="stylesheet" href="/static/styles/post_page.css">
+{% endblock %}
+
+{% block title %}
+    {{ post["title"] }}
+{% endblock %}
+
+{% block main %}
+    <div class="container-main">
+        <div class="o-profile">
+            <div id="post_box" class="post-box" post_id="{{ post['id'] }}" interaction_status="{{ post['status'] }}">
+                <div class="top-part">
+                    <div class="user-info">
+                        <a href="/profile/{{ post['username'] }}"><div class="profile-pic"><img src="{% if post['pfp_location'] %} /{{ post['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                        <div style="margin-left: 0.5vw; text-align: left;">
+                            <div class="name"><a href="/profile/{{ post['username'] }}">{{ post["fullname"] }}</a></div>
+                            <div class="username"><a href="/profile/{{ post['username'] }}">@{{ post["username"] }}</a></div>
+                        </div>
+                    </div>
+                    <div class="post-title" style="font-size: 2rem;"><a href="/post/{{ post['id'] }}">{{ post["title"] }}</a></div>
+                    <div class="post-timestamp">
+                        <div>{{ post["date"] }}</div>
+                        <div>{{ post["time"] }}</div>
+                    </div>
+                </div>
+                <div>
+                    <div class="post-image">
+                        {% if post["imagelocation"] %}
+                            <img style="width: 70%" src="/{{ post['imagelocation'] }}">
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="contents">
+                    <p style="white-space: pre-line">{{ post["contents"] }}</p>
+                </div>
+                <div class="tags">
+                    {% for tag in post["tags"] %}
+                        <div class="tag">#{{ tag }}</div>
+                    {% endfor %}
+                </div>
+                <div class="actions">
+                    <div class="btn-left">
+                        <button id="like_button" name="like_button" value="{{ post['id'] }}" class="action-button btn-big" type="button">
+                            {% if post["status"] == 1 %}
+                                <img src="/static/images/like.png">
+                            {% else %}
+                                <img src="/static/images/like-uncolored.png">
+                            {% endif %}
+                        </button>
+                        <div id="like_count" class="like_count">
+                            {{ post["likes"] }}
+                        </div>
+                        <button id="dislike_button" name="dislike_button" value="{{ post['id'] }}" class="action-button btn-big" type="button">
+                            {% if post["status"] == 2 %}
+                                <img src="/static/images/dislike.png">
+                            {% else %}
+                                <img src="/static/images/dislike-uncolored.png">
+                            {% endif %}
+                        </button>
+                        <button id="share_button" name="share_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/share.png"></button>
+                    </div>
+                    <div id="warning" style="width: 40%; font-size: medium;"></div>
+                    <div class="btn-right">
+                        {% if post["owner"] == True %}
+                            <a href="/edit_post/{{ post['id'] }}"><button  id="edit_button" name="edit_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/edit.png" style="height: 3rem; "></button></a>
+                            <button id="delete_button" name="delete_button" value="{{ post['id'] }}" class="action-button" type="button"><img src="/static/images/delete.png"> </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div id="delete_popup" style="display: none" class="popup">
+                <h3>Title: <span id="popup_title"></span></h3>
+                Likes: <span id="popup_likes"></span>
+                Comments: <span id="popup_comments"></span>
+                <h4>Delete post? This is an irreversible action.</h4>
+                <form>
+                    <button class="btn btn-primary btn-prof" type="button" id="delete_yes" value="yes">Yes</button>
+                    <button class="btn btn-primary btn-prof" type="button" id="delete_no" value="no">No</button>
+                </form>
+            </div>
+
+            <!--Comment Section-->
+            <div id="comments" class="comments">
+                <h4>Comments</h4>
+                <br>
+
+                <!--Add comment section-->
+                <div class="add-comment">
+                    <label class="add-a-comment">Add A Comment</label>
+                    <textarea id="new_comment_content" name="new_comment_content" class="form-control comment-box" min="1" max="640" placeholder="Write your comment here..." rows="4"></textarea>
+                    <div>
+                        <div id="comment_warning" style="text-align: center; font-size: larger; color: red;">
+
+                        </div>
+                        <div class="comment-post">
+                            <button id="comment_post_button" class="btn btn-primary btn-prof">Post</button>
+                        </div>
+                    </div>
+                </div>
+
+                <br>
+                <!--User comments sections-->
+                <div id="user_comment_area">
+                    {% for comment in comments %}
+                        <div id="{{ comment['id'] }}" class="comment" status="{{ comment['status'] }}">
+                            <div class="top-part">
+                                <div class="user-info" style="margin-left: 0%;">
+                                    <a href="/profile/{{ comment['username'] }}"><div class="profile-pic"><img src="{% if comment['pfp_location'] %} /{{ comment['pfp_location'] }} {% else %} /static/images/user_profile_pic.png {% endif %}"></div></a>
+                                    <div class="names">
+                                        <a href="/profile/{{ comment['username'] }}"><div class="name">{{ comment["fullname"] }}</div></a>
+                                        <a href="/profile/{{ comment['username'] }}"><div class="username">@{{ comment["username"] }}</div></a>
+                                    </div>
+                                </div>
+                                <div class="post-timestamp ts-right">
+                                    <div>{{ comment["date"] }}</div>
+                                    <div>{{ comment["time"] }}</div>
+                                </div>
+                            </div>
+                            <div class="comment-content">
+                                <p style="white-space: pre-line">{{ comment["contents"] }}</p>
+                            </div>
+                            <div class="actions" style="margin-top: 0.5rem;">
+                                <div class="btn-left" style="margin-left: 0%;">
+                                    <button name="like_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                        {% if comment["status"] == 1 %}
+                                            <img src="/static/images/like.png">
+                                        {% else %}
+                                            <img src="/static/images/like-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                    <div class="comment-like-count">{{ comment["likes"] }}</div>
+                                    <button name="dislike_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                        {% if comment["status"] == 2 %}
+                                            <img src="/static/images/dislike.png">
+                                        {% else %}
+                                            <img src="/static/images/dislike-uncolored.png">
+                                        {% endif %}
+                                    </button>
+                                </div>
+                                <div name="warning" class="warning"></div>
+                                <div class="btn-right">
+                                    {% if comment['owner'] %}
+                                        <button name="delete_comment_button" class="comment-button" value="{{ comment['id'] }}" type="button">
+                                            <img src="/static/images/delete.png" class="btn-small">
+                                        </button>
+                                        <button name="confirm_deletion" style="display: none;" class="comment-button" type="button">
+                                            <img src="/static/images/Tick-logo.png" class="btn-small">
+                                        </button>
+                                        <button name="cancel_deletion" style="display: none;" class="comment-button" type="button">
+                                            <img src="/static/images/cross-logo.png" class="btn-small">
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        {% if post["owner"] == True %}
+            owner = true;
+        {% else %}
+            owner = null;
+        {% endif %}
+
+        const comments = {{ post['comments'] }};
+    </script>
+{% endblock %}
