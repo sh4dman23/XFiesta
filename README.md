@@ -10,7 +10,7 @@ By Shadman Shahab
 - [Project Files](#project-files)
 
 ## Description
-![XFiesta](readme_images/home.jpg)
+![XFiesta](readme_images/home.png)
 
 XFiesta is my final project for [CS50x](https://cs50.edx.org/). It is my attempt at creating a simple and minimalistic yet functional web-based social media platform, using Python's Flask module. As of now, XFiesta has various features like user profiling, a friend system, chat functionality, creating posts, post comments, post and comment interactions etc.
 
