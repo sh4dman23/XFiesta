@@ -8,7 +8,6 @@ By Shadman Shahab
 - [Installation and Dependencies](#installation-and-dependencies)
 - [Features](#features)
 - [Project Files](#project-files)
-- [Video Demonstration](#video-demonstration)
 
 ## Description
 ![XFiesta](readme_images/home.jpg)
@@ -123,9 +122,5 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
 
 - ### Server Hosted Files:
     XFiesta hosts the user uploaded files in the server within the [server_hosted_files](/server_hosted_files) directory.
-
-## Video Demonstration
-A video demonstration of the project can be found on [YouTube](https://youtu.be/NTNGm2FfoQc)
-
 
 #### I am Shadman Shahab, and this was CS50!
