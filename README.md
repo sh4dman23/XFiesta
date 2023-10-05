@@ -1,7 +1,7 @@
 # XFiesta
-By Shadman Shahab
+A web-based social media platform
 
-04-10-2023
+By Shadman Shahab
 
 ## Table of Contents
 - [Description](#description)
@@ -33,6 +33,10 @@ sudo apt install sqlite3
 All python packages that need to be installed to run the program smoothly are mentioned in [requirements.txt](requirements.txt), which can be installed via:
 ```
 pip install -r requirements.txt
+```
+The application can be run via:
+```
+flask run
 ```
 
 ## Features
@@ -121,6 +125,7 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
     XFiesta hosts the user uploaded files in the server within the [server_hosted_files](/server_hosted_files) directory.
 
 ## Video Demonstration
-(I haven't finished it yet).
+A video demonstration of the project can be found on [YouTube](https://youtu.be/NTNGm2FfoQc)
+
 
 #### I am Shadman Shahab, and this was CS50!

@@ -15,7 +15,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     document.getElementById('warning').style.display = "none";
                     document.getElementById('warning').innerHTML = "";
                     bool1 = true;
-                    if (bool1 && bool2 && bool3) {
+                    if (bool1 && ((bool2 && bool3) || (password1 == '' && password2 == ''))) {
                         submit_button.disabled = false;
                     }
                 } else {
@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function() {
             bool3 = true;
         }
 
-        if ((bool1 && bool2 && bool3) || (password1 == '' && password2 == '')) {
+        if (bool1 && ((bool2 && bool3) || (password1 == '' && password2 == ''))) {
             document.getElementById('warning2').style.display = "none";
             document.getElementById('warning3').style.display = "none";
             submit_button.disabled = false;
@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function() {
             bool3 = true;
         }
 
-        if ((bool1 && bool2 && bool3) || (password1 == '' && password2 == '')) {
+        if (bool1 && ((bool2 && bool3) || (password1 == '' && password2 == ''))) {
             document.getElementById('warning2').style.display = "none";
             document.getElementById('warning3').style.display = "none";
             submit_button.disabled = false;

@@ -20,8 +20,6 @@ if not os.path.exists("app.log"):
 log_file = "app.log"
 logging.basicConfig(filename=log_file, level=logging.INFO)
 
-logging.getLogger("cs50").disabled = False
-
 list_of_interests = [
     "Gaming",
     "Traveling",
@@ -1572,6 +1570,7 @@ def check_message():
     if request.headers.get("X-Requested-With") != "XMLHttpRequest":
         abort(404)
     data = request.get_json()
+    print(data)
 
     # No message exists yet
     if not data:
@@ -1585,7 +1584,7 @@ def check_message():
     if not data.get("inbox_id") or data["inbox_id"] == "":
         inbox = db.execute("SELECT id FROM inbox WHERE (user_id1 = ? AND user_id2 = ?) OR (user_id1 = ? AND user_id2 = ?);", session["user_id"], data["person_id"], data["person_id"], session["user_id"])
         if not inbox:
-            return jsonify({"result": True, "new": False, "inbox_id": inbox_id}), 200
+            return jsonify({"result": True, "new": False}), 200
         else:
             inbox_id = inbox[0]["id"]
     else:
@@ -1822,16 +1821,16 @@ def remove_account():
 
             # Remove all posts by user including tags, interactions, comments and comment interactions
             db.execute("DELETE FROM post_tags WHERE post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"])
-            db.execute("DELETE FROM user_post_interactions WHERE user_id = ?;", session["user_id"])
+            db.execute("DELETE FROM user_post_interactions WHERE user_id = ? OR post_id IN (SELECT DISTINCT id FROM posts WHERE user_id = ?);", session["user_id"], session["user_id"])
 
-            db.execute("DELETE FROM user_comment_interactions WHERE user_id = ?;", session["user_id"])
+            db.execute("DELETE FROM user_comment_interactions WHERE user_id = ? OR comment_id IN (SELECT DISTINCT id FROM comments WHERE user_id = ?);", session["user_id"], session["user_id"])
             db.execute("DELETE FROM comments WHERE user_id = ?;", session["user_id"])
 
             db.execute("DELETE FROM posts WHERE user_id = ?;", session["user_id"])
 
             # Remove all messages sent and recieved by user
-            db.execute("DELETE FROM deleted_messages WHERE sender_id = ?;", session["user_id"])
-            db.execute("DELETE FROM messages WHERE sender_id = ? OR recipient_id = ?;", session["user_id"], session["user_id"])
+            db.execute("DELETE FROM deleted_messages WHERE inbox_id IN (SELECT id FROM inbox WHERE user_id1 = ? OR user_id2 = ?);", session["user_id"], session["user_id"])
+            db.execute("DELETE FROM messages WHERE inbox_id IN (SELECT id FROM inbox WHERE user_id1 = ? OR user_id2 = ?);", session["user_id"], session["user_id"])
             db.execute("DELETE FROM inbox WHERE user_id1 = ? OR user_id2 = ?;", session["user_id"], session["user_id"])
 
             # Delete all user interests
@@ -1864,5 +1863,5 @@ def remove_account():
         return render_template("remove_account.html")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run()
