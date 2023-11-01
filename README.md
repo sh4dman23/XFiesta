@@ -8,6 +8,8 @@ By Shadman Shahab
 - [Installation and Dependencies](#installation-and-dependencies)
 - [Features](#features)
 - [Project Files](#project-files)
+- [License](#license)
+- [Acknowledgements](#acknowlegements)
 
 ## Description
 ![XFiesta](readme_images/home.png)
@@ -22,13 +24,14 @@ To run this application, first clone this repository on your device via either o
 git clone https://github.com/sh4dman23/XFiesta.git
 git clone git@github.com:sh4dman23/XFiesta.git
 ```
-If you do not have python, pip or sqlite3 installed on your device, run:
+If you do not have python, pip or sqlite3 installed on your device, run the following commands on your terminal (if you have a UNIX based system):
 ```
-sudo apt update
 sudo apt install python3
 sudo apt install pip
 sudo apt install sqlite3
 ```
+Else, make sure you have python3, pip and sqlite3 available on your device and are able to run them on your CLI.
+
 All python packages that need to be installed to run the program smoothly are mentioned in [requirements.txt](requirements.txt), which can be installed via:
 ```
 pip install -r requirements.txt
@@ -122,5 +125,11 @@ Additionally, for the sake of simplicity, every user's name is limited to 70 cha
 
 - ### Server Hosted Files:
     XFiesta hosts the user uploaded files in the server within the [server_hosted_files](/server_hosted_files) directory.
+
+## License
+This project is licensed under MIT License. See [LICENSE](./LICENSE) for more information.
+
+## Acknowlegements
+- [CS50x](https://cs50.edx.org/)
 
 #### I am Shadman Shahab, and this was CS50!
